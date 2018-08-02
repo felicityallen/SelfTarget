@@ -2,6 +2,10 @@ import io, os, csv, sys, re
 
 SELFTARGET_ANALYSIS = '/lustre/scratch117/cellgen/team227/fa9/self-target/indel_analysis/'
 
+def setHighDataDir(dirname):
+    global SELFTARGET_ANALYSIS
+    SELFTARGET_ANALYSIS = dirname
+
 def getAllDataDirs():
     null_dir, old_dir, new_dir = [], [], []
     for data_dir in ['ST_April_2017/data/','ST_June_2017/data/','ST_Feb_2018/data/']:

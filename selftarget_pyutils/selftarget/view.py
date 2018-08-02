@@ -111,4 +111,4 @@ def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_
     PL.show(block=False)
     PL.savefig(getPlotDir() + '/%s_%d.svg' % (title.replace(' ','_'), len(labels))) 
     PL.savefig(getPlotDir() + '/%s_%d.png' % (title.replace(' ','_'), len(labels))) 
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()

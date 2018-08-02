@@ -4,20 +4,60 @@ from selftarget.data import getAllDataDirs, getShortDir, getSubdirs, getSampleSe
 from selftarget.oligo import partitionGuides
 import pandas as pd
 
+RUN_LOCAL = False
+PYTHON_CMD = '~/run_python.sh'
+LOG_DIR = 'log_files'
+PLOT_DIR = 'plots'
+PICKLE_DIR = 'pickle'
+PEAR_EXE = '~/pear-0.9.10-bin-64/pear-0.9.10-bin-64'
+INDELMAP_EXE = '/lustre/scratch117/cellgen/team227/fa9/indelmap/bin/indelmap'
+
+def setIndelMapExe(exe):
+    global INDELMAP_EXE
+    INDELMAP_EXE = exe
+
+def setRunLocal(val):
+    global RUN_LOCAL
+    RUN_LOCAL = val
+
+def setPythonCmd(cmd):
+    global PYTHON_CMD
+    PYTHON_CMD = cmd
+
+def setPlotDir(plot_dir):
+    global PLOT_DIR
+    PLOT_DIR = plot_dir
+
+def setPearExe(pear_exe):
+    global PEAR_EXE
+    PEAR_EXE = pear_exe
+
+def getPythonCmd():
+    return PYTHON_CMD
+
+def getRunLocal():
+    return RUN_LOCAL
+
 def getLogDir():
-    out_dir = 'log_files'
+    out_dir = LOG_DIR
     if out_dir not in os.listdir('.'):
         os.mkdir(out_dir)
     return out_dir    
     
+def getIndelMapExe():
+    return INDELMAP_EXE
+
 def getPlotDir():
-    out_dir = 'plots'
+    out_dir = PLOT_DIR
     if out_dir not in os.listdir('.'):
         os.mkdir(out_dir)
     return out_dir 
     
+def getPearExe():
+    return PEAR_EXE
+
 def getPickleDir():
-    out_dir = 'pickle'
+    out_dir = PICKLE_DIR
     if out_dir not in os.listdir('.'):
         os.mkdir(out_dir)
     return out_dir 
@@ -39,17 +79,25 @@ def mergeSamples(all_result_outputs, cols_to_sum, merge_on='Oligo Id',data_label
         merged_data[col + ' Sum'] = merged_data[[col + suffix(i) for i in range(len(datas))]].sum(axis=1)
     return merged_data
 
-
 def runCmdCheckIdx(cmd, idx, start_idx, stop_idx, out_dir, out_prefix, extra_cmd = '', queue='normal', numj=0):
     if idx >= start_idx and idx <= stop_idx:
-        if numj > 0: jcmd = ' -J%s[1-%d]' % (out_prefix, numj)
-        else: jcmd = ''
-        cmd = "bsub -R'select[mem>8000] rusage[mem=8000]' -M8000 -G teamparts -n 1%s -o %s/%s.log -q %s " % (jcmd, out_dir, out_prefix, queue) + cmd
         if extra_cmd != '':
             print(extra_cmd)
             os.system(extra_cmd)
-        print(cmd)
-        os.system(cmd)
+        if RUN_LOCAL:
+            if numj > 1:
+                import pdb; pdb.set_trace()
+                print('Num Job>1, this probably wont work!!')
+                for j in range(numj):
+                    cmd_j = "%s %d > %s/%s.txt" % (cmd, j, out_dir, out_prefix)
+                    print(cmd_j); os.system(cmd_j)
+            else:
+                #cmd = "%s > %s/%s.txt" % (cmd, out_dir, out_prefix)
+                print(cmd); os.system(cmd)
+        else:
+            jcmd = (' -J%s[1-%d]' % (out_prefix, numj)) if numj > 0 else ''
+            cmd = "bsub -R'select[mem>8000] rusage[mem=8000]' -M8000 -G teamparts -n 1%s -o %s/%s.log -q %s " % (jcmd, out_dir, out_prefix, queue) + cmd
+            print(cmd); os.system(cmd)
     return idx + 1
     
 def loadFastaReadsById( filename ):
