@@ -1,10 +1,34 @@
 import io, os, sys
 from selftarget.data import getAllDataDirs, getExpOligoFile, getShortDir
-from selftarget.util import getLogDir, runCmdCheckIdx    
+from selftarget.util import getLogDir, runCmdCheckIdx, getRunLocal, getIndelMapExe
+
+def runAllMap(start_idx=0, stop_idx=100000000, recompute=True, unassembled_only=False, max_cut_dist=4, map_dir='mapping_files'):
+
+    all_dir, out_dir = getAllDataDirs(), getLogDir()
+
+    idx = 0
+    for dirname in all_dir:
+
+        exp_file = getExpOligoFile(dirname)
+        print(getShortDir(dirname), idx)
+
+        check_str = '_pear.unassembled_pear.assembled._' if unassembled_only else '_pear.assembled._'
+        filenames = [x for x in os.listdir(dirname) if check_str in x]
+        for filename in filenames:
+
+                cmd_args = (dirname, filename, exp_file, dirname,map_dir,filename[:-6], max_cut_dist)
+                cmd = getIndelMapExe() + ' %s/%s %s %s/%s/%s_mappings.txt 1 %d' % cmd_args
+                extra_cmd = ''
+                if not os.path.isdir(dirname + '/' + map_dir):
+                    if getRunLocal(): os.mkdir(dirname + '/' + map_dir)
+                    else: extra_cmd = 'mkdir %s' % (dirname + '/' + map_dir)
+                if not recompute and os.path.isfile(dirname + '/' + map_dir + '/' + filename[:-6] + '_mappings.txt'): continue
+                idx = runCmdCheckIdx(cmd, idx, start_idx, stop_idx, out_dir, 'out_map', extra_cmd = extra_cmd)
+                
 
 if __name__ == '__main__':
 
-    start_idx, stop_idx, recompute, unassembled_only, alt_pam  = -1,-1,True, False, False
+    start_idx, stop_idx, recompute, unassembled_only  = -1,-1,True, False
     map_dir, max_cut_dist = 'mapping_files', 4
 
     if len(sys.argv) >= 3:
@@ -14,33 +38,9 @@ if __name__ == '__main__':
     if len(sys.argv) >= 5:
         unassembled_only = eval(sys.argv[4])
     if len(sys.argv) >= 6:
-        alt_pam = eval(sys.argv[5])
+        map_dir = sys.argv[5]
     if len(sys.argv) >= 7:
-        map_dir = sys.argv[6]
-    if len(sys.argv) >= 8:
-        max_cut_dist = eval(sys.argv[7])
+        max_cut_dist = eval(sys.argv[6])
     else:
-        print 'Usage: run_all_map.py <start_idx> <stop_idx> <recompute_existing> <unassembled_only> <alt_pam> <mapping_dir> <max_cut_dist>'    
-
-    all_dir, out_dir = getAllDataDirs(), getLogDir()
-    if alt_pam: map_dir = 'mapping_files_alt_pam'
-
-    idx = 0
-    for dirname in all_dir:
-
-        exp_file = getExpOligoFile(dirname)
-        if alt_pam: exp_file = exp_file[:-6] + '_movedpam.fasta'
-
-        print getShortDir(dirname), idx
-        check_str = '_pear.unassembled_pear.assembled._' if unassembled_only else '_pear.assembled._'
-        filenames = [x for x in os.listdir(dirname) if check_str in x]
-        for filename in filenames:
-
-                cmd_args = (dirname, filename, exp_file, dirname,map_dir,filename[:-6], max_cut_dist)
-                cmd = '/lustre/scratch117/cellgen/team227/fa9/indelmap/bin/indelmap %s/%s %s %s/%s/%s_mappings.txt 1 %d' % cmd_args
-                extra_cmd = ''
-                if not os.path.isdir(dirname + '/' + map_dir):
-                    extra_cmd = 'mkdir %s' % (dirname + '/' + map_dir)
-                if not recompute and os.path.isfile(dirname + '/' + map_dir + '/' + filename[:-6] + '_mappings.txt'): continue
-                idx = runCmdCheckIdx(cmd, idx, start_idx, stop_idx, out_dir, 'out_map', extra_cmd = extra_cmd)
-                
+        print('Usage: run_all_map.py <start_idx> <stop_idx> <recompute_existing> <unassembled_only> <mapping_dir> <max_cut_dist>')
+    runAllMap(start_idx, stop_idx, recompute, unassembled_only, max_cut_dist, map_dir)

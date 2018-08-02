@@ -1,4 +1,9 @@
-script order:
+For example: 
+
+run_example.py
+
+Otherwise script order:
+
 run_all_pear.py
 run_all_partition.py
 run_all_map.py

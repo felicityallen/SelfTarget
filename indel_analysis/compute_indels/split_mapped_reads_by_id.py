@@ -51,7 +51,7 @@ def writeBatchToFile(read_by_file, output_dir):
 if __name__ == '__main__':
 
     if len(sys.argv) != 4 and len(sys.argv) != 5 and len(sys.argv) != 6:
-        print 'split_mapped_reads_by_id.py <high_dir> <exp_oligo_file> <output_dir> <part> <(opt)selected_mapped_fasta>'
+        print('split_mapped_reads_by_id.py <high_dir> <exp_oligo_file> <output_dir> <part> <(opt)selected_mapped_fasta>')
     else:
         highdir = sys.argv[1]
         exp_oligo_file = sys.argv[2]
@@ -82,7 +82,7 @@ if __name__ == '__main__':
                 batch += 1
                 total += 1
                 if str(record.description) not in lookup:
-                    print 'Could not find', str(record.description),'in mapping file'
+                    print('Could not find', str(record.description),'in mapping file')
                     continue
                 oligo_id = lookup[str(record.description)]
                 if oligo_id == 'None':
@@ -108,9 +108,9 @@ if __name__ == '__main__':
             if batch > 0 :
                 writeBatchToFile(read_by_file, sys.argv[3])
 
-        print 'Total records:', total
-        print 'Total assigned:', assigned
+        print('Total records:', total)
+        print('Total assigned:', assigned)
         for thresh in [0,10,100,500,1000]:
-            print 'Num counts > %d:' % thresh, sum([counts[x]>thresh for x in counts])
+            print('Num counts > %d:' % thresh, sum([counts[x]>thresh for x in counts]))
 
 

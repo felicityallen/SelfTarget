@@ -9,6 +9,8 @@ def closeFiles(fhandles):
 
 def writeBatchToFile(read_by_file, output_dir):
     for (filedir, filename) in read_by_file:
+        if not os.path.isdir(output_dir + '/' + filedir):
+            os.mkdir(output_dir + '/' + filedir)
         mapfilename = filename[:-6] + '_mappings.txt'
         if mapfilename in os.listdir(output_dir + '/' + filedir):
             fout = io.open(output_dir + '/' + filedir + '/' + mapfilename, 'a')
@@ -21,13 +23,15 @@ def writeBatchToFile(read_by_file, output_dir):
 if __name__ == '__main__':
 
     if len(sys.argv) != 2 and len(sys.argv) != 3:
-        print 'split_null_mappings.py <high_dir> <(opt)map_dir_ext>'
+        print('split_null_mappings.py <high_dir> <(opt)map_dir_ext>')
     else:
         highdir = sys.argv[1]
         map_dir_ext = sys.argv[2] if len(sys.argv) >= 3 else ''
 
         mapping_dir = '/mapping_files%s/' % map_dir_ext
         map_dir = '/mapped_reads%s/' % map_dir_ext 
+        if not os.path.isdir(highdir + '/' + map_dir):
+            os.mkdir(highdir + '/' + map_dir)
 
         mapping_files = os.listdir(highdir + mapping_dir)
         total, assigned = 0,0
@@ -68,7 +72,7 @@ if __name__ == '__main__':
             if batch > 0 :
                 writeBatchToFile(read_by_file, highdir + map_dir)
 
-        print 'Total records:', total
-        print 'Total assigned:', assigned
+        print('Total records:', total)
+        print('Total assigned:', assigned)
 
 
