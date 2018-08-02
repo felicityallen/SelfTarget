@@ -112,8 +112,8 @@ void TestGenerateIndels::runTest() {
 	barcode_lookups.push_back(barcode_t(barcode_idx_t(0, 1), barcode_lib_t()));
 	barcode_lookups.push_back(barcode_t(barcode_idx_t(-1, 0), barcode_lib_t()));
 
-	generateAllIndels(gen_indels, &oligo, max_cut_dist,5,1, barcode_lookups);
-	if (gen_indels.size() != 36) {
+	generateAllIndels(gen_indels, &oligo, max_cut_dist,5,1,0, barcode_lookups);
+	if (gen_indels.size() != 14) {
 		std::cout << "Unexpected number of generated indels, expected 36 but found " << gen_indels.size() << std::endl;
 		pass = false;
 	}

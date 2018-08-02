@@ -11,6 +11,7 @@ execute_process(
 )
 
 project (indelmap)
+set (CMAKE_CXX_STANDARD 11)
 
 set (INDELMAP_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/bin CACHE STRING "Where do you want the output binaries to install to?" )
 
@@ -31,4 +32,6 @@ configure_file(
 include_directories(${CMAKE_BINARY_DIR}/generated)
 
 install( TARGETS indelmap 
+		 DESTINATION ${INDELMAP_OUTPUT_DIR} )
+install( TARGETS indelgen 
 		 DESTINATION ${INDELMAP_OUTPUT_DIR} )

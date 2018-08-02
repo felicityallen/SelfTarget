@@ -6,7 +6,7 @@
 
 #ifndef __GEN_H__
 #define __GEN_H__
-
+#include <cmath>
 #include <map>
 #include "oligo.h"
 #include "indel.h"

@@ -48,12 +48,9 @@ void getAllInsertionsOfSize(std::vector<std::string> &inserts, int isize) {
 void generateAllIndels(gen_indel_t &gen_indels, Oligo* oligo, int max_cut_dist, int max_del_size, int max_ins_size, int max_del_to_allow_insert, std::vector<barcode_t> &barcode_lookups) {
 
 	std::string ins_str;
-	int left_max = oligo->cut_idx + max_cut_dist;
-	int right_min = oligo->cut_idx - max_cut_dist;
-	int right_max = (oligo->seq).size();
-
-	for (int left = 0; left < left_max; left++) {
-		for (int right = std::max(right_min, left+1); right < right_max; right++) {
+        int right_max = (oligo->seq).size();
+	for (int left = 0; left < oligo->cut_idx; left++) {
+		for (int right = oligo->cut_idx; right < right_max; right++) {
 			int dsize = right - left -1;
 			if(dsize > max_del_size) continue;
 			int max_ins = max_ins_size * (dsize <= max_del_to_allow_insert);
