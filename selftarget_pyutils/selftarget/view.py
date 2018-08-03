@@ -6,6 +6,7 @@ from selftarget.util import getPlotDir
 from selftarget.indel import tokFullIndel
 from selftarget.profile import readSummaryToProfile, fetchRepresentativeCleanReads, getProfileCounts
 from selftarget.oligo import getFileForOligoIdx
+from selftarget.plot import saveFig
 
 def padReadForIndel(read_seq, indel, pam_idx):
     itype,isize,details,muts = tokFullIndel(indel)
@@ -109,6 +110,4 @@ def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_
     PL.title(title)
     PL.subplots_adjust(left=0.05,right=0.95,top=0.95, bottom=0.05)
     PL.show(block=False)
-    PL.savefig(getPlotDir() + '/%s_%d.svg' % (title.replace(' ','_'), len(labels))) 
-    PL.savefig(getPlotDir() + '/%s_%d.png' % (title.replace(' ','_'), len(labels))) 
-    #import pdb; pdb.set_trace()
+    saveFig('%s_%d' % (title.replace(' ','_'), len(labels)), bbox=False)

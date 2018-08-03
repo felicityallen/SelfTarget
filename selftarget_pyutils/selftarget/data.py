@@ -6,6 +6,9 @@ def setHighDataDir(dirname):
     global SELFTARGET_ANALYSIS
     SELFTARGET_ANALYSIS = dirname
 
+def getHighDataDir():
+    return SELFTARGET_ANALYSIS
+
 def getAllDataDirs():
     null_dir, old_dir, new_dir = [], [], []
     for data_dir in ['ST_April_2017/data/','ST_June_2017/data/','ST_Feb_2018/data/']:
@@ -18,6 +21,9 @@ def getAllDataDirs():
     all_dir = [x for x in all_dir if os.path.isdir(x)]
     return all_dir
     
+def isNullDir(dirname):
+    return 'NULL' in dirname or 'WT' in dirname
+
 def getAllNullDirs():
     null_dir = set([getNullDir(x) for x in getAllDataDirs()])
     return [x for x in null_dir]

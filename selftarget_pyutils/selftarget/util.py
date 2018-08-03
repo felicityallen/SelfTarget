@@ -1,6 +1,6 @@
 import io, os, csv, sys, re
 from Bio import SeqIO
-from selftarget.data import getAllDataDirs, getShortDir, getSubdirs, getSampleSelectors, sortSampleNames
+from selftarget.data import getAllDataDirs, isNullDir, getShortDir, getSubdirs, getSampleSelectors, sortSampleNames
 from selftarget.oligo import partitionGuides
 import pandas as pd
 
@@ -11,10 +11,25 @@ PLOT_DIR = 'plots'
 PICKLE_DIR = 'pickle'
 PEAR_EXE = '~/pear-0.9.10-bin-64/pear-0.9.10-bin-64'
 INDELMAP_EXE = '/lustre/scratch117/cellgen/team227/fa9/indelmap/bin/indelmap'
+INDELMH_EXE = '/lustre/scratch117/cellgen/team227/fa9/indelmap/bin/indelmh'
+INDELGENI1_EXE = '/lustre/scratch117/cellgen/team227/fa9/indelmap/bin/indelgen_i1'
+INDELGEN_EXE = '/lustre/scratch117/cellgen/team227/fa9/indelmap/bin/indelgen'
+
+def setIndelGenExe(exe):
+    global INDELGEN_EXE
+    INDELGEN_EXE = exe
 
 def setIndelMapExe(exe):
     global INDELMAP_EXE
     INDELMAP_EXE = exe
+
+def setIndelGenI1Exe(exe):
+    global INDELGENI1_EXE
+    INDELGENI1_EXE = exe
+
+def setIndelMhExe(exe):
+    global INDELMH_EXE
+    INDELMH_EXE = exe
 
 def setRunLocal(val):
     global RUN_LOCAL
@@ -46,6 +61,15 @@ def getLogDir():
     
 def getIndelMapExe():
     return INDELMAP_EXE
+
+def getIndelMhExe():
+    return INDELMH_EXE
+
+def getIndelGenExe():
+    return INDELGEN_EXE
+
+def getIndelGenI1Exe():
+    return INDELGENI1_EXE
 
 def getPlotDir():
     out_dir = PLOT_DIR
@@ -116,12 +140,15 @@ def loadFileToDict(filename, id_col='Oligo ID'):
     return lookup
   
 def startup():
-    start_idx = eval(sys.argv[1]) if len(sys.argv) > 1 else -1
-    stop_idx = eval(sys.argv[2]) if len(sys.argv) > 2 else -1
-    queue = sys.argv[3] if len(sys.argv) > 3 else 'normal'
-    grouped = eval(sys.argv[4]) if len(sys.argv) > 4 else 0 
-    if len(sys.argv) == 1:
-        print('Usage: <python_script.py> start_idx stop_idx (opt)queue (opt)grouped(1 or 0) (opt)other_args\n')
+    if not RUN_LOCAL:
+        start_idx = eval(sys.argv[1]) if len(sys.argv) > 1 else -1
+        stop_idx = eval(sys.argv[2]) if len(sys.argv) > 2 else -1
+        queue = sys.argv[3] if len(sys.argv) > 3 else 'normal'
+        grouped = eval(sys.argv[4]) if len(sys.argv) > 4 else 0 
+        if len(sys.argv) == 1:
+            print('Usage: <python_script.py> start_idx stop_idx (opt)queue (opt)grouped(1 or 0) (opt)other_args\n')
+    else:
+        start_idx, stop_idx, queue, grouped = 0, 100000, 'normal', 0
     return start_idx, stop_idx, queue, grouped
   
 def runSubdir(idx, subdirs, label,  python_script, out_label, caller, extra_args=''):
@@ -137,29 +164,28 @@ def runSubdir(idx, subdirs, label,  python_script, out_label, caller, extra_args
     for subdir in subdirs:
         if grouped == RECURSING:
             if idx >= start_idx and idx <= stop_idx:
-                cmd = '~/run_python.sh %s %s%s' % (python_script, extra_args, subdir) 
+                cmd = PYTHON_CMD + ' %s %s%s' % (python_script, extra_args, subdir) 
                 print(cmd)
                 os.system(cmd)
             idx += 1
         elif grouped == INDIVIDUAL:
-            cmd = '~/run_python.sh %s %s%s' % (python_script, extra_args, subdir) 
+            cmd = PYTHON_CMD + ' %s %s%s' % (python_script, extra_args, subdir) 
             idx = runCmdCheckIdx(cmd, idx, start_idx, stop_idx, out_dir, out_label,queue=queue)
         else: idx += 1
     if grouped == GROUPED:
         if first_idx >= start_idx and idx <= stop_idx+1:
-            cmd = '~/run_python.sh %s %d %d %s %d' % (caller,first_idx,idx-1,queue,RECURSING) 
+            cmd = PYTHON_CMD + ' %s %d %d %s %d' % (caller,first_idx,idx-1,queue,RECURSING) 
             runCmdCheckIdx(cmd, 0, 0, 0, out_dir, out_label,queue=queue)
     return idx
   
-def runPerSubdir(python_script, out_label, caller):
-
+def runPerSubdir(python_script, out_label, caller, extra_args='', include_null=False):
     idx = 0
-    for dirname in getAllDataDirs():
+    for dirname in [x for x in getAllDataDirs() if include_null or not isNullDir(x)]:
         if not os.path.isdir(dirname + '/mapped_reads'):
             print(getShortDir(dirname)), 'No mapped_reads directory'
         else:
             subdirs = getSubdirs(dirname)
-            idx = runSubdir(idx, subdirs, getShortDir(dirname), python_script, out_label, caller)
+            idx = runSubdir(idx, subdirs, getShortDir(dirname), python_script, out_label, caller, extra_args=extra_args)
 
 def saveToPickle(object, filename):
     f = io.open(filename, 'wb')

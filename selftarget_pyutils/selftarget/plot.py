@@ -8,10 +8,20 @@ from scipy.stats import pearsonr, spearmanr
 from selftarget.util import getPlotDir
 from selftarget.data import shortDirLabel, getSimpleName, parseSampleName
 
-def saveFig(fig_fileprefix):
+FIG_TYPE = 'both'
+
+def setFigType(val):
+    global FIG_TYPE
+    FIG_TYPE = val
+
+def saveFig(fig_fileprefix, bbox=True):
     PL.rcParams['svg.fonttype'] = 'none'
-    PL.savefig(getPlotDir() + '/' + fig_fileprefix +'.svg', bbox_inches='tight')  
-    PL.savefig(getPlotDir()  + '/' + fig_fileprefix +'.png', bbox_inches='tight')   
+    for ftype in ['svg','png']:
+        if FIG_TYPE == 'both' or FIG_TYPE==ftype:
+            if bbox:
+                PL.savefig(getPlotDir() + '/' + fig_fileprefix +'.'+ftype, bbox_inches='tight')
+            else:
+                PL.savefig(getPlotDir() + '/' + fig_fileprefix +'.'+ftype) 
 
 def sanitizeLabel(label):
     for badchar in [' ','(',')','>']:
