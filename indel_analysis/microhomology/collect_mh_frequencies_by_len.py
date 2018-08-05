@@ -54,17 +54,20 @@ def collectMhFrequenciesOfLen(results_subdir, mh_len, outfile):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 3:
-        print('Usage: collect_mh_frequencies_by_len.py results_mh_len subdir')
+    if len(sys.argv) != 4:
+        print('Usage: collect_mh_frequencies_by_len.py results_mh_len highdir subdir')
     else:
-        results_subdir = sys.argv[2]
-        subdir = '/'.join(results_subdir.split('/')[-2:])
+
         mh_len = eval(sys.argv[1])
+        highdir = sys.argv[2]
+        results_subdir = sys.argv[3]
+        subdir = '/'.join(results_subdir.split('/')[-2:])
+
         
         if not os.path.isdir(results_subdir):
             raise Exception('No such directory:' + results_subdir)
 
-        out_dir = 'mh_freqs_by_len' + '/' + subdir
+        out_dir = highdir + '/mh_freqs_by_len' + '/' + subdir
         if not os.path.isdir(out_dir): os.makedirs(out_dir)
     
         collectMhFrequenciesOfLen(results_subdir, mh_len, out_dir + '/mh_indels_of_len_%d.txt' % mh_len)

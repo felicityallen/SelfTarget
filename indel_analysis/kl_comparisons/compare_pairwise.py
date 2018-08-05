@@ -5,9 +5,14 @@ from selftarget.profile import readSummaryToProfile, symmetricKL, compareTopInde
 from selftarget.oligo import getOligoIdsFromFile
 from selftarget.data import getDirLabel, getIndelSummaryFiles, getSubdirs
 
+def filterLargeI(profile):
+    return {x:profile[x] for x in profile if (x[0] == '-' or x[0] != 'I' or x[1] != '1')}
+
 if len(sys.argv) != 4:
     print('compare_pairwise.py <dirname1> <dirname2> <subdir>')
 else:
+
+    remove_largeI = True
 
     dirname1, dirname2 = sys.argv[1], sys.argv[2]
     subdir = sys.argv[3]
@@ -17,7 +22,7 @@ else:
     if subdir not in getSubdirs(dirname2, withpath=False):
         raise Exception('No subdir %s in %s' % (subdir, dirname2) )    
         
-    out_dir = 'profile_comparison_summaries'
+    out_dir = 'profile_comparison_summaries' if not remove_largeI else 'profile_comparison_summaries_nolargeI'
     if not os.path.isdir(out_dir): os.mkdir(out_dir)
     out_dir += '/%s_vs_%s' % (getDirLabel(dirname1),getDirLabel(dirname2))
     if not os.path.isdir(out_dir): os.mkdir(out_dir)
@@ -43,6 +48,10 @@ else:
             num_reads1, perc_acc1, nonull1 = readSummaryToProfile(filename1, profile1, oligoid=oligo_id)	
             num_reads2, perc_acc2, nonull2 = readSummaryToProfile(filename2, profile2, oligoid=oligo_id)
             ns1, ns2 = len(profile1), len(profile2)
+
+            if remove_largeI:
+                profile1 = filterLargeI(profile1)
+                profile2 = filterLargeI(profile2)
 
             ent1a, ent2a = entropy(profile1,True), entropy(profile2,True)
             poverlap = percentOverlap( profile1, profile2, True )

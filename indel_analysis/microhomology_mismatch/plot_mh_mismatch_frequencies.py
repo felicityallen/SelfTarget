@@ -144,8 +144,8 @@ def runAnalysis():
             'partitions': ['Non-Targeting'],
             'samples': ['K562 New']
             }
-    analyseResultsPerPartition( spec ) 
-    import pdb; pdb.set_trace()
+    analyseResultsPerPartition( spec )
 
 if __name__ == '__main__':
     runAnalysis()
+    import pdb; pdb.set_trace()

@@ -10,8 +10,8 @@
 #include <map>
 #include "oligo.h"
 
-static const int MAX_T = 120;
-static const int MAX_R = 150;
+static const int MAX_T = 300;
+static const int MAX_R = 300;
 static const int MAX_INDEL = 2;
 static const int GAP_PENALTY = 8;
 

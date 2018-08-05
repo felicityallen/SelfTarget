@@ -75,10 +75,12 @@ def compileMappedNull(file_prefix, read_lookup, pam_lookup, exp_oligo_lookup):
     if not os.path.isfile(file_prefix + '_mappings.txt'):
         print('Could not find file', file_prefix + '_mappings.txt')
     else:
-                #Add 5 pseudo reads for the NULL indel for all oligos (in case poorly represented in the NULL measure)
-        for (oligo_id, pam_loc, pam_dir, seq) in exp_oligo_lookup[file_prefix.split('/')[-1]]:
-            read_profiles[oligo_id] = {'-': 5}
-            indel_seqs[oligo_id] = {'-': seq}
+
+        #Add 5 pseudo reads for the NULL indel for all oligos (in case poorly represented in the NULL measure)
+        if file_prefix.split('/')[-1] in exp_oligo_lookup:
+            for (oligo_id, pam_loc, pam_dir, seq) in exp_oligo_lookup[file_prefix.split('/')[-1]]:
+                read_profiles[oligo_id] = {'-': 5}
+                indel_seqs[oligo_id] = {'-': seq}
 
         f = io.open(file_prefix + '_mappings.txt')
         rdr = csv.reader(f, delimiter='\t')
@@ -117,7 +119,7 @@ def compileMappedNull(file_prefix, read_lookup, pam_lookup, exp_oligo_lookup):
         
         fout.close()
 
-def convertToExpFile(null_sum_file,  output_file):
+def convertToExpFile(null_sum_file,  output_file, discard_long=True):
     f = io.open(null_sum_file)
     fout = io.open(output_file,'w')
     for line in f:
@@ -126,7 +128,7 @@ def convertToExpFile(null_sum_file,  output_file):
             continue
         toks = line.split('\t')
         seq, indel, pam_idx, pam_dir, perc = toks
-        if len(seq) > 120: 
+        if discard_long and len(seq) > 120: 
             print('Too long:', oligo_id, seq)
             continue     #Leave out long templates
         if eval(perc) < 0.5:

@@ -41,19 +41,22 @@ def writeI1to3Summary(fout, id, p1, stats1, i1_details_row, indel_hdrs):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 2:
-        raise Exception('Usage: compile_i1.py <subdir>')
+    if len(sys.argv) != 3:
+        raise Exception('Usage: compile_i1.py <highdir> <subdir>')
 
     #Set up output file
-    subdir = sys.argv[1]
-    out_dir = createResultDirectory('i1_summaries', subdir)
+    highdir = sys.argv[1]
+    subdir = sys.argv[2]
+    out_dir = createResultDirectory(highdir + '/i1_summaries', subdir)
     fout = io.open(out_dir + '/' + subdir.split('/')[-1] + '.txt', 'w')
 
     #Load I1 details file
     dirname = getDirNameFromSubdir(subdir)
     if isOldLib(dirname): i1_details_file = 'exp_target_pam_old_gen_i1_indels.txt'
     else: i1_details_file = 'exp_target_pam_new_gen_i1_indels.txt'
-    i1_details, i1_hdrs = loadI1to3Details(i1_details_file)
+    
+    i1_loc = '.' if highdir == '.' else highdir + '/ST_June_2017/data'
+    i1_details, i1_hdrs = loadI1to3Details(i1_loc + '/' + i1_details_file)
 
     #For each Oligo, summarise details of I1 insertions
     fout.write(u'Oligo Id')

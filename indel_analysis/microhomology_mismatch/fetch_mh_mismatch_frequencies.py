@@ -1,19 +1,15 @@
 import io, os, sys, csv
 
-from selftarget.data import isOldLib, createResultDirectory, getDirLabel
+from selftarget.data import isOldLib, createResultDirectory, getDirLabel, getHighDataDir
 from selftarget.oligo import getFileForOligoIdx, getOligoIdxFromId, getShortOligoId
 from selftarget.profile import readSummaryToProfile
 
-if len(sys.argv) != 2:
-    print('Usage: fetch_mh_mismatch_frequencies.py dirname')
-else:
+def fetchMhMismatchFrequencies(dirname, outdir='mh_mismatch_indel_frequencies'):
 
-    dirname = sys.argv[1]    
-    outdir = 'mh_mismatch_indel_frequencies'
-    if not os.path.isdir(outdir): os.mkdir(outdir)
+    if not os.path.isdir(outdir): os.makedirs(outdir)
     if isOldLib(dirname): raise Exception('Old Lib not supported')
         
-    mh_exp_indels_file = 'mh_mismatch_indels.txt'
+    mh_exp_indels_file = getHighDataDir() + '/mh_mismatch_indels.txt'
 
     fout = io.open(outdir + '/' + getDirLabel(dirname) + '.txt','w')
     hdr_str = '\t'.join(['\t'.join([x + ' Indel Reads in ' + y for x in ['Orig', 'Left Mut', 'Right Mut', 'Merged Mut1', 'Merged Mut2']]) for y in ['Mut', 'Orig']])
@@ -45,6 +41,11 @@ else:
     f.close()
     fout.close()
     
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        raise Exception('Usage: fetch_mh_mismatch_frequencies.py dirname')
+
+    dirname = sys.argv[1]    
     
     
     
