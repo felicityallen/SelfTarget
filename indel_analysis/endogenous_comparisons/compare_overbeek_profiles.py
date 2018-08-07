@@ -33,7 +33,7 @@ def plotInFrame(overbeek_inframes, ours_inframes, oof_sel_overbeek_ids, pred_res
     saveFig('in_frame_full_scatter')
 
 def loadMappings():
-    f = io.open('overbeek_to_oligo_mapping.txt')
+    f = io.open(getHighDataDir() + '/overbeek_to_oligo_mapping.txt')
     reader = csv.reader(f, delimiter='\t')
     mappings = {}
     for toks in reader:
@@ -99,7 +99,7 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
         if overbeek_id not in mappings:
             continue
         
-        overbeek_filename = 'overbeek_fastq_files/' + overbeek_id + '_mappedindelsummary.txt'
+        overbeek_filename = getHighDataDir() +'/overbeek_fastq_files/' + overbeek_id + '_mappedindelsummary.txt'
 
         p1, p1_new, p1_old, o1, rep_reads1, rep_reads2 = {}, {}, {}, {}, {},{}
         nreads2, nreads1, nreads_old, nreads_new, nnull_old, nnull_new, nnull1, nnull2 = 0,0,0,0,0,0,0,0
@@ -107,8 +107,8 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
         #Read the overbreek profile
         numread2, perc_accept2, num_null2  = readSummaryToProfile(overbeek_filename, o1, oligoid=overbeek_id, remove_long_indels=remove_long_indels, remove_wt = False)
         if selected_overbeek_id is not None: 
-            fetchRepresentativeCleanReads('overbeek_fastq_files/' + overbeek_id + '_mappedindelprofiles.txt', rep_reads2, oligoid=overbeek_id)
-            pam_loc2, pam_dir2 = getNullTargetPamDetails('overbeek_control_fastq_files/' + overbeek_id + '_exptargets.txt', oligoid=overbeek_id)
+            fetchRepresentativeCleanReads(getHighDataDir() +'/overbeek_fastq_files/' + overbeek_id + '_mappedindelprofiles.txt', rep_reads2, oligoid=overbeek_id)
+            pam_loc2, pam_dir2 = getNullTargetPamDetails(getHighDataDir() +'/overbeek_control_fastq_files/' + overbeek_id + '_exptargets.txt', oligoid=overbeek_id)
         nreads2 += numread2
         nnull2 += num_null2
 
@@ -132,7 +132,7 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
             for oligo_dir in [getHighDataDir()+ '/' + x for x in oligo_dirs]:
                 nr1, pa1, nn1  = readSummaryToProfile(oligo_dir + '/' + oligo_filename, p1_old_new, oligoid=oligo_id, remove_long_indels=remove_long_indels, remove_wt = remove_wt, wt_thresh=wt_thresh)
                 numread1, perc_accept1, num_null1  = readSummaryToProfile(oligo_dir + '/' + oligo_filename, p1, oligoid=oligo_id, remove_long_indels=remove_long_indels, remove_wt = remove_wt, wt_thresh=wt_thresh)
-                if selected_overbeek_id is not None: 
+                if selected_overbeek_id is not None and os.path.isfile(oligo_dir + '/' + read_filename): 
                     fetchRepresentativeCleanReads(oligo_dir + '/' + read_filename, rep_reads1, oligoid=oligo_id)
                     if pam_loc1 is None:
                         pam_loc1, pam_dir1 = getNullTargetPamDetails(getHighDataDir()+ '/' + null_oligo_dir + '/' + exptarget_filename, oligoid=oligo_id )
@@ -172,7 +172,8 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
         try:
             print(overbeek_id, [x for (x,y) in mappings[overbeek_id]], kls[-1], nreads2, nreads1)
         except KeyError:
-            print('', end='')
+            print('Could not find', overbeek_id)
+            print(mappings)
 
         if selected_overbeek_id is not None:
             title = '%s (KL=%.1f)' % (overbeek_id, kls[-1])
@@ -203,12 +204,6 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
 
         print('Median=',np.median(kls), 'Mean KL=',np.mean(kls)) 
         print(len(overbeek_ids))
-        fout = io.open('processed_overbeek_results.txt','w')
-        for overbeek_id, kl in zip(overbeek_ids,kls):
-            old_id  = [x for x,y in mappings[overbeek_id] if y][0]
-            new_id  = [x for x,y in mappings[overbeek_id] if not y][0]
-            fout.write(u'%s\t%s\t%s\t%.5f\n' % (overbeek_id, new_id, old_id, kl))
-        fout.close()
 
         #Compute pairwise KL between overbeek and ours
         N = len(sel_overbeek_ids)
@@ -230,8 +225,8 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
 
 if __name__ == '__main__':
 
-    setHighDataDir('.')
-    setPlotDir('plots')
+    setHighDataDir('/data/endogenous_comparisons')
+    setPlotDir('/results/plots')
     setFigType('png')
-    compareOverbeekProfiles(selected_overbeek_id='Overbeek16', pred_results_dir='.')
-    compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir='.')
+    compareOverbeekProfiles(selected_overbeek_id='Overbeek16', pred_results_dir='/data/endogenous_comparisons')
+    compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir='/data/endogenous_comparisons')

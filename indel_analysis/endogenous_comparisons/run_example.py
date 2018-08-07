@@ -10,13 +10,15 @@ from compute_overbeek_indel_profiles import computeOverbeekIndelProfiles
 def printStatus(status):
     print('\n### ',status,' ###\n ')
 
+shutil.copytree('/data/endogenous_processing_example','/results/endogenous_processing_example')
+
 #----------------------------------------------------------------------
 # Configure environment
 #----------------------------------------------------------------------
 setRunLocal(True)
-setHighDataDir('example/')
+setHighDataDir('/results/endogenous_processing_example/')
 setPythonCmd('python')
-setIndelMapExe('C:/Users/fa9/postdoc/indelmap/build/Release/indelmap.exe')
+setIndelMapExe('/usr/local/bin/indelmap')
 
 #----------------------------------------------------------------
 # Processing of raw Van-Overbeek et al reads to produce descriptions of indels

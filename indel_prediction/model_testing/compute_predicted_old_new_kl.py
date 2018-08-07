@@ -1,4 +1,4 @@
-import io, os, csv, sys, re, random, itertools
+import io, os, csv, sys, re, random, itertools, shutil
 import numpy as np
 import pylab as PL
 import Bio.Seq
@@ -9,6 +9,7 @@ from selftarget.oligo import getOligoIdxFromId, getFileForOligoIdx, loadOldNewMa
 from selftarget.data import getHighDataDir, setHighDataDir
 from selftarget.view import plotProfiles
 from selftarget.util import setPlotDir, getIndelGenExe, setIndelGenExe
+from selftarget.plot import setFigType
 
 from predictor.model import computePredictedProfile, readTheta, setFeaturesDir, setReadsDir
 
@@ -131,15 +132,14 @@ def prepareExample(example_dir):
 
 if __name__ == '__main__':
  
-    setIndelGenExe('C:/Users/fa9/postdoc/indelmap/build/Release/indelgen.exe')
-    setPlotDir('plots')
-    prepareExample('predicted_vs_measured_example')
+    setIndelGenExe('/usr/local/bin/indelgen')
+    setPlotDir('/results/plots')
+    setFigType('png')
+    
+    shutil.copytree('/data/predicted_vs_measured_example', '/results/predicted_vs_measured_example')
+    prepareExample('/results/predicted_vs_measured_example')
 
     #Predict mutations using pre-trained model and compare to actual (for one oligo only)
     theta_file = getHighDataDir() + '/model_output_2000_0.01000000_1.835_theta.txt_cf0.txt'
     computeAndComparePredicted(theta_file, selected_id='Oligo69919', out_dir='.')
-
-
-        
-
 

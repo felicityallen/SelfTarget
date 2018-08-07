@@ -1,7 +1,7 @@
 import io,sys,os,csv
 
 from selftarget.oligo import loadAllOligoDetails
-from selftarget.data import getHighDataDir
+from selftarget.data import getHighDataDir, setHighDataDir
 
 def collectMhOfLen(filename, mh_len, fout):
 
@@ -63,7 +63,7 @@ if __name__ == '__main__':
         highdir = sys.argv[2]
         results_subdir = sys.argv[3]
         subdir = '/'.join(results_subdir.split('/')[-2:])
-
+        setHighDataDir(highdir)
         
         if not os.path.isdir(results_subdir):
             raise Exception('No such directory:' + results_subdir)

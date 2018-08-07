@@ -135,11 +135,6 @@ def plotCorrelations(all_result_outputs, label='', data_label='', y_label='', pl
                     thr_dvs = [(dv1, dv2,id) for (dv1, dv2, tr1, tr2,id) in zip(dvs1,dvs2,trs1,trs2,ids) if (tr1 >= thr and tr2 >= thr) ]
                     pcorrs[i,j] = pearsonr([x[0] for x in thr_dvs], [x[1] for x in thr_dvs])[0]
                     PL.plot([x[0] for x in thr_dvs],[x[1] for x in thr_dvs],'.', label='>%d Reads' % thr)
-                    #if thr == 1000:
-                        #for (x,y,id) in thr_dvs:
-                            #if random.random() < 0.01:
-                    #            PL.text(x,y,id)
-                    
 
                 PL.plot([0,100],[0,100],'k--')
                 PL.xlabel('K562 Replicate A')
@@ -150,19 +145,20 @@ def plotCorrelations(all_result_outputs, label='', data_label='', y_label='', pl
         PL.subplots_adjust(left=0.05,right=0.95,top=0.9, bottom=0.1, hspace=0.4)
         PL.show(block=False)
         saveFig(plot_label)
-        #PL.savefig(getPlotDir() + '/scatter_%s_%s.png' % (plot_label, sanitizeLabel(label)), bbox_inches='tight') 
-    PL.figure()
-    PL.subplot(1,2,1)
-    PL.imshow(pcorrs, cmap='hot', vmin = 0.0, vmax = 1.0, interpolation='nearest')
-    PL.xticks(range(N),sample_names, rotation='vertical')
-    PL.yticks(range(N),sample_names)
-    PL.title(y_label + ': Pearson')
-    PL.colorbar()
-    PL.subplot(1,2,2)
-    PL.imshow(scorrs, cmap='hot', vmin = 0.0, vmax = 1.0, interpolation='nearest')
-    PL.xticks(range(N),sample_names, rotation='vertical')
-    PL.yticks(range(N),sample_names)
-    PL.title(y_label + ': Spearman')
-    PL.colorbar()
-    PL.show(block=False)
-    PL.savefig(getPlotDir() + '/%s_%s.png' % (plot_label, sanitizeLabel(label)), bbox_inches='tight') 
+
+    if not plot_scatters:
+        PL.figure()
+        PL.subplot(1,2,1)
+        PL.imshow(pcorrs, cmap='hot', vmin = 0.0, vmax = 1.0, interpolation='nearest')
+        PL.xticks(range(N),sample_names, rotation='vertical')
+        PL.yticks(range(N),sample_names)
+        PL.title(y_label + ': Pearson')
+        PL.colorbar()
+        PL.subplot(1,2,2)
+        PL.imshow(scorrs, cmap='hot', vmin = 0.0, vmax = 1.0, interpolation='nearest')
+        PL.xticks(range(N),sample_names, rotation='vertical')
+        PL.yticks(range(N),sample_names)
+        PL.title(y_label + ': Spearman')
+        PL.colorbar()
+        PL.show(block=False)
+        PL.savefig(getPlotDir() + '/%s_%s.png' % (plot_label, sanitizeLabel(label)), bbox_inches='tight') 

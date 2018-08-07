@@ -1,6 +1,6 @@
 import io, os, csv, sys, re
 from Bio import SeqIO
-from selftarget.data import getAllDataDirs, isNullDir, getShortDir, getSubdirs, getSampleSelectors, sortSampleNames
+from selftarget.data import getHighDataDir, getAllDataDirs, isNullDir, getShortDir, getSubdirs, getSampleSelectors, sortSampleNames
 from selftarget.oligo import partitionGuides
 import pandas as pd
 
@@ -55,8 +55,8 @@ def getRunLocal():
 
 def getLogDir():
     out_dir = LOG_DIR
-    if out_dir not in os.listdir('.'):
-        os.mkdir(out_dir)
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
     return out_dir    
     
 def getIndelMapExe():
@@ -73,8 +73,8 @@ def getIndelGenI1Exe():
 
 def getPlotDir():
     out_dir = PLOT_DIR
-    if out_dir not in os.listdir('.'):
-        os.mkdir(out_dir)
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
     return out_dir 
     
 def getPearExe():
@@ -227,7 +227,7 @@ def getCommonGuideset(results_list, part_guideset, data_function=defaultLoadData
 #                min_reads: minimum number of reads for each oligo in all samples,
 #                check_output_fn: function to check if per result output is ok to proceed to combined }
 def analyseResultsPerPartition( spec ):
-    partitions = partitionGuides()
+    partitions = partitionGuides(oligo_detail_dir=getHighDataDir()+ '/ST_June_2017/data')
     samples_selectors = getSampleSelectors(include_wt=('include_wt' in spec and spec['include_wt']))
     
     #Backwards compatibility for single results_spec: move to listed spec

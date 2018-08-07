@@ -99,7 +99,7 @@ def readSummaryToProfile(filename, profile, oligoid=None, noexclude=False, remov
     wt_p, wt_p_wfilter = {}, {}
     if 'WT' not in dirname and dirname != '' and not noexclude and remove_wt:
         wt_filename = getWTDir(dirname) + '/' + filename_suffix
-        if wt_filename[0] == '/' and wt_filename[1:7] != 'lustre': wt_filename = wt_filename[1:]
+        #if wt_filename[0] == '/' and wt_filename[1:7] != 'lustre': wt_filename = wt_filename[1:]
         if not os.path.isfile(wt_filename):
             print('Warning: Could not find', wt_filename)
         else:

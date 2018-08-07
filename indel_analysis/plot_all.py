@@ -16,10 +16,12 @@ sys.path.append('scaffold_compare')
 from plot_old_new import runAnalysis as plotKLOldNew
 sys.path.append('indel_details')
 from plot_pie_indel_summaries import runAnalysis as plotIndelDetails
+sys.path.append('../indel_prediction/model_testing')
+from plot_old_new_predictions import runAnalysis as plotPred
 
 setFigType('png')
-#setPlotDir('/results')
-setHighDataDir('data_for_code_ocean')
+setPlotDir('/results/plots')
+setHighDataDir('/data/summary_data')
 
 plotI1()
 plotKLCmp()
@@ -27,6 +29,7 @@ plotMH()
 plotMhMismatch()
 plotKLOldNew()
 plotIndelDetails()
+plotPred()
 
 
         
