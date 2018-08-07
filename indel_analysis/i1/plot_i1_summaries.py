@@ -6,20 +6,21 @@ import pylab as PL
 from selftarget.util import getPlotDir, analyseResultsPerPartition, defaultLoadData, mergeSamples
 from selftarget.plot import saveFig, plotBarSummary, plotVerticalHistSummary
 from selftarget.oligo import getShortOligoId
+from selftarget.data import getHighDataDir, setHighDataDir
 
     
 MIN_READS = 20
 
 def loadIndelData():
-    indel_data_new = pd.read_csv('exp_target_pam_new_gen_i1_indels.txt', sep='\t', header=1)
-    indel_data_old = pd.read_csv('exp_target_pam_old_gen_i1_indels.txt', sep='\t', header=1)
+    indel_data_new = pd.read_csv(getHighDataDir() + '/i1/exp_target_pam_new_gen_i1_indels.txt', sep='\t', header=1)
+    indel_data_old = pd.read_csv(getHighDataDir() + '/i1/exp_target_pam_old_gen_i1_indels.txt', sep='\t', header=1)
     indel_data = pd.concat([indel_data_new, indel_data_old])[['Oligo Id','Repeat Nucleotide Left','Repeat Nucleotide Right']]
     indel_data['Short Oligo Id'] = indel_data['Oligo Id'].apply(getShortOligoId)
     return indel_data
 
-indel_data = loadIndelData()
 
 def mergeWithIndelData(data, label=''):
+    indel_data = loadIndelData()
     merged_data = pd.merge(data, indel_data, how='inner', left_on='Oligo Id', right_on='Short Oligo Id')
     merged_data['Is Ambiguous'] = (merged_data['Repeat Nucleotide Left'] == merged_data['Repeat Nucleotide Right'])
     merged_data['I1_Rpt Left Reads - NonAmb'] = merged_data['I1_Rpt Left Reads']*(1-merged_data['Is Ambiguous'])
@@ -151,7 +152,7 @@ def plotBarSummaryI1RptFracs(all_result_outputs, label=''):
 
 def runAnalysis():
 	
-    spec = {'results_dir':'i1_summaries',
+    spec = {'results_dir':getHighDataDir() + '/i1/i1_summaries',
             'dirname_to_result_fn': lambda x: '%s.txt' % x,
             'result_to_dirname_fn': lambda x: x.split('/')[-1][:-4],
             'py_func_load': defaultLoadData,
@@ -165,7 +166,8 @@ def runAnalysis():
             'samples': ['K562 New']
             }
     analyseResultsPerPartition( spec ) 
-    import pdb; pdb.set_trace()
-
+   
 if __name__ == '__main__':
+    setHighDataDir('..')
     runAnalysis()
+    import pdb; pdb.set_trace()

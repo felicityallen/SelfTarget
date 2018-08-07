@@ -9,6 +9,7 @@ import Bio.Seq
 from selftarget.indel import tokFullIndel
 from selftarget.util import mergeSamples, getPlotDir, analyseResultsPerPartition, defaultLoadData
 from selftarget.plot import plotBarSummary, saveFig
+from selftarget.data import setHighDataDir, getHighDataDir
 
 MIN_READS = 100
 PLOT_COLORS = ['red','blue','green','orange','purple','cyan','lightblue','darkgreen','yellow','magenta','gray','navy']
@@ -63,14 +64,11 @@ def plotMicrohomologyMismatches(all_result_outputs, label=''):
     getLeft = lambda indel: tokFullIndel(indel)[2]['L']
     getRight = lambda indel: tokFullIndel(indel)[2]['R']
     getMHSize = lambda indel: tokFullIndel(indel)[2]['C']
-    
-    f = io.open('../ST_June_2017/data/oligos_for_customarray_Dec2016_pamlocations.txt')
-    reverse_lookup = {toks[0].split('_')[0]: int(toks[2] == 'REVERSE') for toks in csv.reader(f, delimiter='\t')}
-    is_reverse = lambda oligo_id: reverse_lookup[oligo_id.replace('_','')]
-    f.close()
 
-    oligo_data = pd.read_csv('../ST_June_2017/data/self_target_oligos_details.csv', sep='\t')
+    oligo_data = pd.read_csv(getHighDataDir() + '/ST_June_2017/data/self_target_oligos_details_with_pam_details.csv', sep='\t')
     oligo_data['Guide is matched'] = oligo_data.apply(isMatched, axis=1)
+    reverse_lookup = {x: y == 'REVERSE' for (x,y) in zip(oligo_data['ID'],oligo_data['PAM Direction'])}
+    is_reverse = lambda x: reverse_lookup[x]
 
     data = pd.merge(data, oligo_data[['ID','Guide is matched']], left_on='Oligo ID', right_on='ID', how='inner')
 
@@ -131,7 +129,7 @@ def plotMicrohomologyMismatches(all_result_outputs, label=''):
 
 def runAnalysis():
 	
-    spec = {'results_dir':'mh_mismatch_indel_frequencies',
+    spec = {'results_dir':getHighDataDir() + '/microhomology_mismatch/mh_mismatch_indel_frequencies',
             'dirname_to_result_fn': lambda x: '%s.txt' % x,
             'result_to_dirname_fn': lambda x: x.split('/')[-1][:-4],
             'py_func_load': loadData,
@@ -147,5 +145,6 @@ def runAnalysis():
     analyseResultsPerPartition( spec )
 
 if __name__ == '__main__':
+    setHighDataDir('..')
     runAnalysis()
     import pdb; pdb.set_trace()

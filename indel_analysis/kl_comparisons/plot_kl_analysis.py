@@ -6,12 +6,12 @@ import pandas
 
 from selftarget.oligo import partitionGuides
 from selftarget.util import getPickleDir
-from selftarget.data import getAllDataDirs, getSampleSelectors, sortSampleNames, getDirLabel, getSimpleName, parseSampleName
+from selftarget.data import getAllDataDirs, getSampleSelectors, sortSampleNames, getDirLabel, getSimpleName, parseSampleName, getHighDataDir, setHighDataDir
 from selftarget.plot import saveFig
 
 from scipy.stats import pearsonr
 
-ST_COMPARISON_RESULTS_DIR = 'profile_comparison_summaries_'
+ST_COMPARISON_RESULTS_DIR = 'kl_comparisons/kl_comparison_summaries'
 MIN_READS = 20 
 
 def getDirsFromFilename( filename ):
@@ -19,19 +19,19 @@ def getDirsFromFilename( filename ):
     if idx < 0: return(None, None)
     return(filename[:idx],filename[idx+4:-4])
 
-def loadAllData( guideset, sample_selector=lambda x: True, label='', cols=['KL without null']):
+def loadAllData( guideset, sample_selector=lambda x: True, label='', cols=['KL without null'], allow_pickle=False):
     pickle_file = '%s/kl_analysis_%s.pickle' % (getPickleDir(), label.replace(' ','_'))
-    if os.path.exists(pickle_file):
+    if os.path.exists(pickle_file) and allow_pickle:
         merged_data = pandas.read_pickle(pickle_file)
     else:
-        cmp_files = os.listdir(ST_COMPARISON_RESULTS_DIR)
+        cmp_files = os.listdir(getHighDataDir() + '/' + ST_COMPARISON_RESULTS_DIR)
         merged_data = None
         for filename in cmp_files:
             dir1, dir2 = getDirsFromFilename(filename)
             if not sample_selector(dir1) or not sample_selector(dir2): continue
         
             #Load data from file
-            data = pandas.read_csv(ST_COMPARISON_RESULTS_DIR + '/' + filename, sep='\t')
+            data = pandas.read_csv(getHighDataDir() + '/' + ST_COMPARISON_RESULTS_DIR + '/' + filename, sep='\t')
             data['Mutated Reads 1'] = data['Num Reads 1'] - data['Num null reads 1']
             data['Mutated Reads 2'] = data['Num Reads 2'] - data['Num null reads 2']
             data = data.loc[data['Mutated Reads 1'] > MIN_READS]
@@ -50,7 +50,8 @@ def loadAllData( guideset, sample_selector=lambda x: True, label='', cols=['KL w
             print(len(merged_data), filename)
            
         merged_data = merged_data.rename(columns={x: (x + first_suffix) for x in cols})
-        merged_data.to_pickle(pickle_file)
+        if allow_pickle:
+            merged_data.to_pickle(pickle_file)
     return merged_data
 
 def getUniqueSamples(colnames):
@@ -98,9 +99,9 @@ def plotHeatMap(data, col='KL without null', label=''):
     PL.show(block=False) 
     saveFig('median_kl_heatmap_cell_lines')
 
-def run_analysis():
+def runAnalysis():
 	
-    partitions = partitionGuides()
+    partitions = partitionGuides(oligo_detail_dir=getHighDataDir()+ '/ST_June_2017/data')
 
     for part_desc in ['Real Guides']:
 
@@ -108,11 +109,12 @@ def run_analysis():
         guideset = partitions[part_desc]
 
         desc = part_desc + ' DPI7'
-        data = loadAllData(partitions[part_desc], sample_selector=selector, label=desc)
+        data = loadAllData(guideset, sample_selector=selector, label=desc)
         plotHeatMap(data, label=desc)
 
-    import pdb; pdb.set_trace()
 
 if __name__ == '__main__':
-    run_analysis()
+    setHighDataDir('..')
+    runAnalysis()
+    import pdb; pdb.set_trace()
 	

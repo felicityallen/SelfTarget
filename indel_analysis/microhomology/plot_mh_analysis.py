@@ -12,7 +12,7 @@ MIN_READS = 20
 NUM_PSEUDO_READS = 5
 
 from selftarget.util import getPlotDir, analyseResultsPerPartition, defaultLoadData
-from selftarget.data import parseSampleName, getSimpleName
+from selftarget.data import parseSampleName, getSimpleName, setHighDataDir, getHighDataDir
 from selftarget.plot import saveFig
 
 def loadData(filename, guideset=set()):
@@ -28,17 +28,9 @@ def loadAllMHLenData(dirname, guideset=set()):
     files = [dirname + '/' + x for x in os.listdir(dirname)]
     return pd.concat([loadData(x, guideset=guideset) for x in files])
     
-def loadAllMHLenAndOtherData(results_list, guideset=set()):
-    data_mh =loadAllMHLenData(results_list[0], guideset=guideset)
-    MH_DEL_LABELS = ['Large D, MH','Small D, MH']
-    NON_MH_DEL_LABELS = ['Large D, No MH','Small D, No MH']
-    DEL_LABELS = MH_DEL_LABELS + NON_MH_DEL_LABELS
-    data_del = defaultLoadData(results_list[1], guideset=guideset)[['Oligo Id'] + DEL_LABELS]
-    data_del['Total Deletions'] = data_del[DEL_LABELS].sum(axis=1)
-    data = data_mh.merge(data_del, left_on='Oligo ID', right_on='Oligo Id', how='inner')
-    data['Percent Deletions'] = (data['Indel Reads']+NUM_PSEUDO_READS)*100.0/(data['Total Deletions']+NUM_PSEUDO_READS)
-    data['Total Percent Deletions'] = (data['Total Deletions']+NUM_PSEUDO_READS)*100.0/(data['Non-Null Reads']+NUM_PSEUDO_READS)
-    return data
+def loadAllMHLenAndOtherData(dirname, guideset=set()):
+    data_mh =loadAllMHLenData(dirname, guideset=guideset)
+    return data_mh
 
 def passData(data, label='test'):
     return data
@@ -70,7 +62,7 @@ def plotPercScatterAnalysis(data, label='test', y_axis = 'Percent Non-Null Reads
             PL.xlim((0,20))
             PL.title('Microhomology of length %d (r=%.2f)' % (mh_len,corr[0]),fontsize=14)
             PL.show(block=False)  
-            saveFig('mh_scatter_len%d_%s' % (mh_len,label)) 
+            saveFig('mh_scatter_len%d_%s' % (mh_len,label.split('/')[-1])) 
     
     if plot_regr_lines:
         fig = PL.figure()
@@ -88,7 +80,7 @@ def plotPercScatterAnalysis(data, label='test', y_axis = 'Percent Non-Null Reads
         PL.legend()
         PL.ylim((0,100))
         PL.show(block=False)  
-        saveFig(plot_dir + '/mh_scatter_all_len_%s' % label) 
+        saveFig(plot_dir + '/mh_scatter_all_len_%s' % label.split('/')[-1]) 
     return regr_lines
 
 def plotK562PercScatterAnalysis(data, label=''):
@@ -112,7 +104,7 @@ def compareMHlines(all_result_outputs, label='', y_axis = 'Percent Non-Null Read
         PL.ylabel('Correspondng microhomology-mediated deletion\n as percent of total mutated reads',fontsize=14)
         PL.tick_params(labelsize=16)
         PL.legend(loc='upper right')
-        PL.ylim((0,80))
+        PL.ylim((0,70))
         PL.xlim((0,20))
         PL.xticks(range(0,21,5))
         PL.title('Microhomology Length %d' % mh_len,fontsize=18)
@@ -189,15 +181,25 @@ def plotGCContent(all_result_outputs, label=''):
 
 def runAnalysis():
 
-    results_specs = [{'results_dir':'mh_freqs_by_len',
-                      'dirname_to_result_fn': lambda x: '%s' % x,
-                      'result_to_dirname_fn': lambda x: x.split('/')[-1]},
-                      {'results_dir':'../most_common_indels/indel_pie_summaries_per_oligo',
-                      'dirname_to_result_fn': lambda x: '%s.txt' % x,
-                      'result_to_dirname_fn': lambda x: x.split('/')[-1][:-4]}]
+    spec = {'results_dir': getHighDataDir() + '/microhomology/mh_freqs_by_len',
+            'dirname_to_result_fn': lambda x: x,
+            'result_to_dirname_fn': lambda x: x,
+            'py_func_load': loadAllMHLenData,
+            'py_funcs_per_result':  [(plotK562PercScatterAnalysis,'RegrLines'), (passData, 'Data')],
+            'py_funcs_all_results': [compareMHK562lines, plotGCContent],
+            'reads_colname': 'Non-Null Reads',
+            'check_output_fn': lambda x: True, 
+            'id_colname': 'Oligo ID',
+            'min_reads': MIN_READS,
+            'partitions': ['Non-Targeting'],
+            'samples': ['K562 New']
+            }
+    analyseResultsPerPartition( spec ) 
 
-    spec = {'results_specs': results_specs,
-            'py_func_load': loadAllMHLenAndOtherData,
+    spec = {'results_dir': getHighDataDir() + '/microhomology/mh_freqs_by_len',
+            'dirname_to_result_fn': lambda x: x,
+            'result_to_dirname_fn': lambda x: x,
+            'py_func_load': loadAllMHLenData,
             'py_funcs_per_result':  [(plotPercScatterAnalysis,'RegrLines')],
             'py_funcs_all_results': [compareMHlines],
             'reads_colname': 'Non-Null Reads',
@@ -209,20 +211,7 @@ def runAnalysis():
             }
     analyseResultsPerPartition( spec ) 
 
-    spec = {'results_specs': results_specs,
-        'py_func_load': loadAllMHLenAndOtherData,
-        'py_funcs_per_result':  [(plotK562PercScatterAnalysis,'RegrLines'), (passData, 'Data')],
-        'py_funcs_all_results': [compareMHK562lines, plotGCContent],
-        'reads_colname': 'Non-Null Reads',
-        'check_output_fn': lambda x: True, 
-        'id_colname': 'Oligo ID',
-        'min_reads': MIN_READS,
-        'partitions': ['Non-Targeting'],
-        'samples': ['K562 New']
-        }
-    analyseResultsPerPartition( spec ) 
-
-    import pdb; pdb.set_trace()
-
 if __name__ == '__main__':
+    setHighDataDir('..')
     runAnalysis()
+    import pdb; pdb.set_trace()

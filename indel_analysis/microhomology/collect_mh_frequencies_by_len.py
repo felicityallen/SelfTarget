@@ -1,10 +1,11 @@
 import io,sys,os,csv
 
 from selftarget.oligo import loadAllOligoDetails
+from selftarget.data import getHighDataDir
 
 def collectMhOfLen(filename, mh_len, fout):
 
-    det = loadAllOligoDetails()
+    det = loadAllOligoDetails(oligo_detail_dir=getHighDataDir() + '/ST_June_2017/data')
     oligo_details = {'Oligo' + x.split('_')[-1]:val for x,val in det.items()}
 
     indels_to_write = []
