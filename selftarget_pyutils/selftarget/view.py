@@ -29,7 +29,7 @@ def plotSeqLetterwise(seq, y, pam_idx, red_idxs=set(), green_idxs=set(), default
         if xloc > -35 and xloc <= 35:
             PL.text(xloc,y, nt, verticalalignment='bottom', horizontalalignment='left', color=clr)
     
-def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_lines=60):
+def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_lines=25):
     if len(profiles) == 0: raise Exception('Empty list of profiles')
     
     colors = ['C0', 'C2', 'C1']
@@ -59,7 +59,7 @@ def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_
     #Order indels by decreasing average percentage across profiles
     top_av_percs = [(np.mean([x[indel][-1] for x in counts]),indel) for indel in union_top_indels]
     top_av_percs.sort(reverse=True)
-    max_indels = 6 #max_lines/len(profiles)
+    max_indels = max_lines/len(profiles)
 
     #Figure out Trims
     null_reads = [x['-'] if '-' in x else [x[y[1]] for y in ocnt if y[1] in x][0] for x,ocnt in zip(rep_reads, ocounts)]
@@ -70,8 +70,8 @@ def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_
     Rs = [L + min_null - len(null) for (L,null) in zip(Ls, null_reads)]
 
     #Plot
-    scale_factor = 30.0/max([x[1][3] for x in ocounts])
-    fig = PL.figure(figsize=(10,2*len(labels)))
+    scale_factor = 10.0/max([x[1][3] for x in ocounts])
+    fig = PL.figure(figsize=(10,5*len(labels)))
     fig.patch.set_visible(False)
     ax = PL.gca()
     ax.axis('off')

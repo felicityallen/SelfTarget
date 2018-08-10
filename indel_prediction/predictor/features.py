@@ -1,3 +1,5 @@
+import io, csv
+import pandas as pd
 
 NTS = ['A','T','G','C']
 
@@ -173,3 +175,40 @@ def calculateFeatures(indel_details):
         all_features.extend(lin_fts[fname][0]); all_feature_labels.extend(lin_fts[fname][1])
     assert(len(all_features)==len(all_feature_labels))
     return all_features, all_feature_labels
+
+def calculateFeaturesForGenIndelFile( generated_indel_file, uncut_seq, cut_site, out_file, is_reverse=False):
+
+    f = io.open(generated_indel_file )
+    fout = io.open(out_file, 'w')
+    fout.write(f.readline())    #Git commit line (pass on)
+    pam_dir = 'REVERSE' if is_reverse else 'FORWARD'
+    fout.write(u'###%s\t%d\t%s\n' % (uncut_seq, cut_site, pam_dir))
+    first = True
+    A,T,G,C = 'A','T','G','C'
+    AA,AT,AC,AG,CG,CT,CA,CC = 'AA','AT','AC','AG','CG','CT','CA','CC'
+    GT,GA,GG,GC,TA,TG,TC,TT = 'GT','GA','GG','GC','TA','TG','TC','TT'
+
+    for toks in csv.reader(f,delimiter='\t'):
+        indel, indel_locs = toks[0], eval(toks[2])
+        for indel_loc in indel_locs:
+            ins_seq = indel_loc[2] if len(indel_loc) > 2 else ''
+            left = indel_loc[0] if not is_reverse else (78 - indel_loc[1]) 
+            right = indel_loc[1] if not is_reverse else (78 - indel_loc[0]) 
+            ins_seq = ins_seq if not is_reverse else Bio.Seq.reverse_complement(ins_seq)
+            indel_details = (uncut_seq, cut_site, left, right, ins_seq)
+             
+            features, feature_labels = calculateFeatures(indel_details)
+                
+            if first: fout.write(u'Indel\tLeft\tRight\tInserted Seq\t%s\n' % '\t'.join(feature_labels))
+            feature_str = '\t'.join(['%d' % x for x in features])
+            fout.write(u'%s\t%d\t%d\t%s\t%s\n' % (indel, left, right, ins_seq, feature_str))
+            first = False
+    fout.close()
+    f.close()
+
+def readFeaturesData(features_file):
+    feature_data = pd.read_csv(features_file, skiprows=2, sep='\t')
+    feature_cols = [x for x in feature_data.columns if x not in ['Oligo ID','Indel','Left','Right','Inserted Seq']]
+    indel_feature_data = 1*feature_data[['Indel'] + feature_cols].groupby('Indel').any()
+    indel_feature_data['Indel'] = indel_feature_data.index
+    return indel_feature_data, feature_cols

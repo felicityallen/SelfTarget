@@ -82,7 +82,8 @@ def computeAndComparePredicted(theta_file, selected_id=None, out_dir='.'):
         p_comb, mut_reads_comb = combineProfiles(p_old, p_new, mut_reads_old, mut_reads_new)
 
         #Predict the profile (old and new will be the same so just do one)
-        p_predict, _ = computePredictedProfile(new_id, theta, feature_columns)
+        feature_data = loadOligoFeaturesAndReadCounts(new_id, [])
+        p_predict, _ = computePredictedProfile(feature_data, theta, feature_columns)
 
         #Compute in frame percentages
         old_if, old_of, _ = fetchIndelSizeCounts(p_old)
@@ -142,4 +143,8 @@ if __name__ == '__main__':
     #Predict mutations using pre-trained model and compare to actual (for one oligo only)
     theta_file = getHighDataDir() + '/model_output_2000_0.01000000_1.835_theta.txt_cf0.txt'
     computeAndComparePredicted(theta_file, selected_id='Oligo69919', out_dir='.')
+
+
+        
+
 

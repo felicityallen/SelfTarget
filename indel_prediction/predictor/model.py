@@ -14,6 +14,8 @@ from selftarget.data import getSampleSelectors, getAllDataDirs
 from selftarget.oligo import loadOldNewMapping, partitionGuides, getFileForOligoIdx, getOligoIdxFromId
 from selftarget.profile import getProfileCounts
 
+from predictor.features import readFeaturesData
+
 comm = MPI.COMM_WORLD
 mpi_rank = comm.Get_rank()
 mpi_size = comm.Get_size()
@@ -71,10 +73,8 @@ def loadOligoFeaturesAndReadCounts(oligo_id, sample_names):
     reads_file = READS_DIR + '/' + oligo_subdir + '/%s_gen_indel_reads.txt' % oligo_id
 
     cut_site = getCutSite(features_file)
-    feature_data = pd.read_csv(features_file, skiprows=2, sep='\t')
-    feature_cols = [x for x in feature_data.columns if x not in ['Oligo ID','Indel','Left','Right','Inserted Seq']]
-    indel_feature_data = 1*feature_data[['Indel'] + feature_cols].groupby('Indel').any()
-
+    indel_feature_data, feature_cols = readFeaturesData(features_file)
+    
     if len(sample_names) > 0:
         read_data =  pd.read_csv(reads_file, skiprows=1, sep='\t')
         read_data['Sum Sample Reads'] = read_data[sample_names].sum(axis=1) + 0.5
@@ -137,8 +137,7 @@ def debugIndel(theta, data, indel, feature_columns):
     for index,row in indel_data.iterrows():
         print(indel, [(x,theta) for (x,y,theta) in zip(feature_columns,[row[x] for x in feature_columns],theta) if y])
 
-def computePredictedProfile(oligo_id, theta, feature_columns):
-    data = loadOligoFeaturesAndReadCounts(oligo_id, [])
+def computePredictedProfile(data, theta, feature_columns):
     data['expThetaX'] = np.exp(data.apply(calcThetaX, axis=1, args=(theta,feature_columns)))
     sum_exp = data['expThetaX'].sum()
     profile = {x: expthetax*1000/sum_exp for (x,expthetax) in zip(data['Indel'],data['expThetaX'])}

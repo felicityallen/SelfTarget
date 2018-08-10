@@ -1,7 +1,7 @@
 import io, sys, os, csv
 import Bio.Seq
 
-from predictor.features import calculateFeatures
+from predictor.features import calculateFeaturesForGenIndelFile
 
 from selftarget.oligo import loadAllOligoDetails, getShortOligoId, loadPamLookup, getOligoIdxFromId, getFileForOligoIdx
 from selftarget.data import getHighDataDir
@@ -28,33 +28,10 @@ def computeFeaturesForGenIndels(gen_indel_dir = 'generated_indels', out_dir='fea
 
         uncut_seq = row['Target'] if row['PAM Direction'] != 'REVERSE' else Bio.Seq.reverse_complement(row['Target'])
         cut_site = eval(row['PAM Location'])-3 if row['PAM Direction'] != 'REVERSE' else (79 - eval(row['PAM Location']) - 3)
-            
-        f = io.open(gen_indel_dir + '/' + gen_file )
-        fout = io.open(out_subdir + '/%s_gen_indel_features.txt' % oligo_id, 'w')
-        fout.write(f.readline())    #Git commit line (pass on)
-        fout.write(u'###%s\t%d\t%s\n' % (uncut_seq, cut_site, row['PAM Direction']))
-        first = True
-        A,T,G,C = 'A','T','G','C'
-        AA,AT,AC,AG,CG,CT,CA,CC = 'AA','AT','AC','AG','CG','CT','CA','CC'
-        GT,GA,GG,GC,TA,TG,TC,TT = 'GT','GA','GG','GC','TA','TG','TC','TT'
-
-        for toks in csv.reader(f,delimiter='\t'):
-            indel, indel_locs = toks[0], eval(toks[2])
-            for indel_loc in indel_locs:
-                ins_seq = indel_loc[2] if len(indel_loc) > 2 else ''
-                left = indel_loc[0] if row['PAM Direction'] != 'REVERSE' else (78 - indel_loc[1]) 
-                right = indel_loc[1] if row['PAM Direction'] != 'REVERSE' else (78 - indel_loc[0]) 
-                ins_seq = ins_seq if row['PAM Direction'] != 'REVERSE' else Bio.Seq.reverse_complement(ins_seq)
-                indel_details = (uncut_seq, cut_site, left, right, ins_seq)
-             
-                features, feature_labels = calculateFeatures(indel_details)
-                
-                if first: fout.write(u'Indel\tLeft\tRight\tInserted Seq\t%s\n' % '\t'.join(feature_labels))
-                feature_str = '\t'.join(['%d' % x for x in features])
-                fout.write(u'%s\t%d\t%d\t%s\t%s\n' % (indel, left, right, ins_seq, feature_str))
-                first = False
-        fout.close()
-        f.close()
+        generated_indel_file = gen_indel_dir + '/' + gen_file    
+        out_file = out_subdir + '/%s_gen_indel_features.txt' % oligo_id
+        is_reverse = (row['PAM Direction'] == 'REVERSE')
+        calculateFeaturesForGenIndelFile( generated_indel_file, uncut_seq, cut_site, out_file, is_reverse=is_reverse)
 
 if __name__ == '__main__':
 
