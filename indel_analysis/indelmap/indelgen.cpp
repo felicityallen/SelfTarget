@@ -24,19 +24,6 @@ static const int MAX_DEL_TO_ALLOW_INS = 0;
 #include "indel.h"
 #include "version.h"
 
-void writeGeneratedIndelsToFile(std::ofstream &ofs, gen_indel_t &indels) {
-	gen_indel_t::iterator git = indels.begin();
-	for (; git != indels.end(); ++git ){
-		std::vector<loc_t> *locs = &(git->second);
-		ofs << git->first << "\t" << locs->size() << "\t";
-		std::vector<loc_t>::iterator it = locs->begin();
-		ofs << "[" << "(" << it->left << "," << it->right << "," << it->ins_seq << ")"; it++;
-		for (; it != locs->end(); ++it) 
-			ofs << ",(" << it->left << "," << it->right << "," << it->ins_seq << ")";
-		ofs << "]\n";
-	}
-}
-
 int main(int argc, char *argv[])
 {
 	if (argc != 3 && argc != 4)
@@ -60,12 +47,12 @@ int main(int argc, char *argv[])
 	//Generate possible indels for each oligo and write to file
 	std::vector<Oligo*>::iterator it = oligo_lookup.begin();
 	for (; it != oligo_lookup.end(); ++it) {
-		gen_indel_t indels;
-		generateAllIndels(indels, *it, max_cut_dist, MAX_DEL_SIZE, MAX_INS_SIZE, MAX_DEL_TO_ALLOW_INS, barcode_lookups);
+		gen_indel_t indels; rep_reads_t rep_reads;
+		generateAllIndels(indels, *it, max_cut_dist, MAX_DEL_SIZE, MAX_INS_SIZE, MAX_DEL_TO_ALLOW_INS, barcode_lookups, true, rep_reads, false);
 		std::string oligo_output_filename = output_prefix + (*it)->id + "_genindels.txt";
 		std::ofstream ofs(oligo_output_filename.c_str(), std::fstream::out);
 		ofs << "@@@Git Commit: " << GIT_COMMIT_HASH << std::endl;
-		writeGeneratedIndelsToFile(ofs, indels);
+		writeGeneratedIndelsToFile(ofs, indels, rep_reads,0);
 		ofs.close();
 	}
 	

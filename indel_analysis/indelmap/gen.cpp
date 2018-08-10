@@ -45,11 +45,14 @@ void getAllInsertionsOfSize(std::vector<std::string> &inserts, int isize) {
 	}
 }
 
-void generateAllIndels(gen_indel_t &gen_indels, Oligo* oligo, int max_cut_dist, int max_del_size, int max_ins_size, int max_del_to_allow_insert, std::vector<barcode_t> &barcode_lookups) {
+IndelXX gen_indel_xx;
+
+void generateAllIndels(gen_indel_t &gen_indels, Oligo* oligo, int max_cut_dist, int max_del_size, int max_ins_size, int max_del_to_allow_insert, std::vector<barcode_t> &barcode_lookups, bool check_mappable, rep_reads_t &rep_reads, bool store_reads ) {
 
 	std::string ins_str;
-        int right_max = (oligo->seq).size();
-	for (int left = 0; left < oligo->cut_idx; left++) {
+	int left_min = std::max(0, oligo->cut_idx - max_del_size - 1);
+	int right_max = std::min(int((oligo->seq).size()),oligo->cut_idx+max_del_size+1);
+	for (int left = left_min; left < oligo->cut_idx; left++) {
 		for (int right = oligo->cut_idx; right < right_max; right++) {
 			int dsize = right - left -1;
 			if(dsize > max_del_size) continue;
@@ -58,11 +61,19 @@ void generateAllIndels(gen_indel_t &gen_indels, Oligo* oligo, int max_cut_dist, 
 				std::vector<std::string> inserts; getAllInsertionsOfSize(inserts, isize);
 				std::vector<std::string>::iterator it = inserts.begin();
 				for (; it != inserts.end(); ++it) {
-					std::string read_seq = oligo->seq.substr(0, left + 1) + *it + oligo->seq.substr(right, right_max - right);
+					std::string read_seq = oligo->seq.substr(0, left + 1) + *it + oligo->seq.substr(right, (oligo->seq).size() - right);
 					if (read_seq.length() < 2) continue;
-					std::string indel; bool mappable = getIndelForReadIfMappable(oligo, read_seq, indel, max_cut_dist, barcode_lookups);
+					std::string indel, muts; bool mappable = true;
+					if (check_mappable) {
+						mappable = getIndelForReadIfMappable(oligo, read_seq, indel, max_cut_dist, barcode_lookups);
+					}else {
+						double score = gen_indel_xx.computeMatchScore(*oligo, read_seq, indel, muts, max_cut_dist);
+					}
 					if (mappable && (indel != "-")) {
-						if (gen_indels.find(indel) == gen_indels.end()) gen_indels[indel];
+						if (gen_indels.find(indel) == gen_indels.end()) {
+							gen_indels[indel];
+							if (store_reads) rep_reads[indel] = read_seq;
+						}
 						gen_indels[indel].push_back(loc_t(left, right, *it));
 					}
 				}
@@ -70,8 +81,6 @@ void generateAllIndels(gen_indel_t &gen_indels, Oligo* oligo, int max_cut_dist, 
 		}
 	}
 }
-
-IndelXX readmap_indel_yy;
 
 char revCmp(char nt) {
 	char rc_nt;
@@ -99,7 +108,7 @@ i1_rpt_nts generateI1to3Indels(gen_i1_t &gen_indels, Oligo* oligo, int max_cut_d
 		for (; it != inserts.end(); ++it) {
 			std::string read_seq = oligo->seq.substr(0, iloc) + *it + oligo->seq.substr(iloc, (oligo->seq).size());
 			std::string indel, muts;
-			double score = readmap_indel_yy.computeMatchScore(*oligo, read_seq, indel, muts, max_cut_dist);
+			double score = gen_indel_xx.computeMatchScore(*oligo, read_seq, indel, muts, max_cut_dist);
 			if (oligo->reverse) gen_indels[revCmpSeq(*it)] = indel;
 			else gen_indels[*it] = indel;
 		}
@@ -134,4 +143,19 @@ void writeMhIndelsToFile(std::ofstream &ofs, Oligo *oligo, std::vector<Microhomo
 	std::vector<std::string>::iterator it = indels.begin();
 	for (; it != indels.end(); ++it) ofs << *it << ",";
 	ofs << "\n";
+}
+
+void writeGeneratedIndelsToFile(std::ofstream &ofs, gen_indel_t &indels, rep_reads_t &rep_reads, int offset) {
+	gen_indel_t::iterator git = indels.begin();
+	for (; git != indels.end(); ++git) {
+		std::vector<loc_t> *locs = &(git->second);
+		ofs << git->first << "\t" << locs->size() << "\t";
+		std::vector<loc_t>::iterator it = locs->begin();
+		ofs << "[" << "(" << it->left+offset << "," << it->right + offset << "," << it->ins_seq << ")"; it++;
+		for (; it != locs->end(); ++it)
+			ofs << ",(" << it->left + offset << "," << it->right + offset << "," << it->ins_seq << ")";
+		ofs << "]";
+		if (rep_reads.find(git->first) != rep_reads.end()) ofs << "\t" << rep_reads[git->first];
+		ofs << "\n";
+	}
 }

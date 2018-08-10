@@ -21,6 +21,7 @@ set ( TEST_SRC_FILES test.cpp test.h )
 add_executable( indelmap ${SRC_FILES} indelmap.cpp)
 add_executable( indelmaptest ${SRC_FILES} ${TEST_SRC_FILES} )
 add_executable( indelgen ${SRC_FILES} indelgen.cpp )
+add_executable( indelgentarget ${SRC_FILES} indelgentarget.cpp )
 add_executable( indelgen_i1 ${SRC_FILES} indelgen_i1.cpp )
 add_executable( indelmh ${SRC_FILES} indelmh.cpp )
 add_definitions("-DGIT_COMMIT_HASH=${GIT_COMMIT_HASH}")
@@ -34,6 +35,8 @@ include_directories(${CMAKE_BINARY_DIR}/generated)
 install( TARGETS indelmap 
 		 DESTINATION ${INDELMAP_OUTPUT_DIR} )
 install( TARGETS indelgen 
+		 DESTINATION ${INDELMAP_OUTPUT_DIR} )
+install( TARGETS indelgentarget 
 		 DESTINATION ${INDELMAP_OUTPUT_DIR} )
 install( TARGETS indelgen_i1
 		 DESTINATION ${INDELMAP_OUTPUT_DIR} )

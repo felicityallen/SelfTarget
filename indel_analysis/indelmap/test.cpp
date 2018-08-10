@@ -107,14 +107,15 @@ void TestGenerateIndels::runTest() {
 	Oligo oligo(id, tseq, 4, false);
 	int max_cut_dist = 1;
 	gen_indel_t gen_indels;
+	rep_reads_t rep_reads;
 	
 	std::vector<barcode_t> barcode_lookups;
 	barcode_lookups.push_back(barcode_t(barcode_idx_t(0, 1), barcode_lib_t()));
 	barcode_lookups.push_back(barcode_t(barcode_idx_t(-1, 0), barcode_lib_t()));
 
-	generateAllIndels(gen_indels, &oligo, max_cut_dist,5,1,0, barcode_lookups);
+	generateAllIndels(gen_indels, &oligo, max_cut_dist,5,1,0, barcode_lookups, false, rep_reads, false);
 	if (gen_indels.size() != 14) {
-		std::cout << "Unexpected number of generated indels, expected 36 but found " << gen_indels.size() << std::endl;
+		std::cout << "Unexpected number of generated indels, expected 14 but found " << gen_indels.size() << std::endl;
 		pass = false;
 	}
 	passed = pass;
