@@ -4,3 +4,4 @@ biopython
 mpld3
 jinja2
 flask
+pandas

@@ -60,7 +60,8 @@ int main(int argc, char *argv[])
 	assert(seq.substr(pam_idx + 1, 2) == "GG");
 
 	gen_indel_t indels; rep_reads_t rep_reads;  std::vector<barcode_t> barcode_lookups;
-	Oligo oligo(std::string("No Id"), seq, pam_idx - 3, false);
+	std::string id_str("No Id");
+	Oligo oligo(id_str, seq, pam_idx - 3, false);
 	generateAllIndels(indels, &oligo, max_cut_dist, MAX_DEL_SIZE, MAX_INS_SIZE, MAX_DEL_TO_ALLOW_INS, barcode_lookups, false, rep_reads, true);
 	std::ofstream ofs(output_file.c_str(), std::fstream::out);
 	ofs << "@@@Git Commit: " << GIT_COMMIT_HASH << std::endl;

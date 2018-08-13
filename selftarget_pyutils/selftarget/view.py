@@ -26,7 +26,7 @@ def plotSeqLetterwise(seq, y, pam_idx, red_idxs=set(), green_idxs=set(), default
         else:	clr = default_clr
         xloc = i-pam_idx+3
         if xloc > 0:	xloc += 0.1
-        if xloc > -35 and xloc <= 35:
+        if xloc > -28 and xloc <= 28:
             PL.text(xloc,y, nt, verticalalignment='bottom', horizontalalignment='left', color=clr)
     
 def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_lines=25):
@@ -71,7 +71,7 @@ def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_
 
     #Plot
     scale_factor = 10.0/max([x[1][3] for x in ocounts])
-    fig = PL.figure(figsize=(10,5*len(labels)))
+    fig = PL.figure(figsize=(9,5*len(labels)))
     fig.patch.set_visible(False)
     ax = PL.gca()
     ax.axis('off')
@@ -91,23 +91,25 @@ def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_
             if indel != '-':
                 bar_ypos[j].append((N-i+(j+0.5)*1.0/len(profiles))*line_height)
                 bar_len[j].append(perc1b*scale_factor)
-    hist_loc = 45
+    hist_loc = 35
     for bar1_ypos, bar1_len, label1,clr in zip(bar_ypos, bar_len, labels,colors):
         PL.barh(bar1_ypos, bar1_len, height=0.8*line_height/len(profiles), left=hist_loc, label=label1, color=clr )
         for (ypos, blen) in zip(bar1_ypos, bar1_len):
             PL.text(hist_loc+blen+1,ypos-0.5/len(profiles)*line_height, '%.1f%%' % (blen/scale_factor))
-    xlims = (-45,hist_loc + max([max(x) for x in bar_len]) + 5)
-    PL.xlim( xlims )
+    xlims = (-35,hist_loc + max([max(x) for x in bar_len]) + 5)
+    PL.xlim( xlims[0]-10, xlims[1]+3 )
     for i, (av_perc, indel) in enumerate(top_av_percs):
         if i > max_indels: break
-        PL.text(xlims[0]-5,(N-i+0.5)*line_height,indel.split('_')[0], fontweight='bold')
+        PL.text(xlims[0]-3,(N-i+0.5)*line_height,indel.split('_')[0], fontweight='bold')
         PL.plot(xlims,[(N-i)*line_height, (N-i)*line_height],'lightgrey')
     PL.plot([0,0],[0,N*line_height],'k--')
     PL.plot([hist_loc,hist_loc],[0,N*line_height],'k')
     PL.xticks([])
     PL.yticks([])
-    PL.legend(loc='upper right')
-    PL.title(title)
+    # PL.legend(loc='upper right')
+    # PL.title(title)
     PL.subplots_adjust(left=0.05,right=0.95,top=0.95, bottom=0.05)
     PL.show(block=False)
+    PL.axis('off')
     saveFig('%s_%d' % (title.replace(' ','_'), len(labels)), bbox=False)
+    return fig

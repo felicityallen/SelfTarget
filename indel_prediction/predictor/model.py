@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import random
 
-from mpi4py import MPI
+# from mpi4py import MPI
 
 import io, os, sys, csv, time
 from multiprocessing import Process, Pipe
@@ -16,9 +16,9 @@ from selftarget.profile import getProfileCounts
 
 from predictor.features import readFeaturesData
 
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_size = comm.Get_size()
+# comm = MPI.COMM_WORLD
+mpi_rank = 0
+mpi_size = 1
 
 REG_CONST = 0.01
 GEN_INDEL_FEATURES_DIR = '/features_ext_for_gen_indels'
