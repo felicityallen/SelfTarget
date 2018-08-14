@@ -1,4 +1,5 @@
 import mpld3
+import logging
 from flask import Flask, request, jsonify
 
 from indel_prediction.predictor.predict import plot_predictions as main, setIndelGenTargetExeLoc
@@ -11,19 +12,22 @@ model_path = "indel_prediction/predictor/model_output_2000_0.01000000_1.835_thet
 def plot():
     """
     request body: {"seq": "SEQUENCE", "pam_idx": "NUMBER"}
-    :return: {"answer": answer}
+    :return: {"plot": "plot data"}
+    :return: {"error": "error message"}
     """
     data = request.form or request.get_json()
     seq = data.get("seq", "")
     pam_idx = int(data.get("pam_idx", ""))
     if not (seq and pam_idx):
         return jsonify({'message': 'Empty request'}), 400
-    setIndelGenTargetExeLoc('indelgentarget')
-    graph_html = mpld3.fig_to_html(main(model_path, seq, pam_idx),
-                                   template_type="simple",
-                                   figid="plot",
-                                   no_extras=True)
-
+    try:
+        graph_html = mpld3.fig_to_html(main(model_path, seq, pam_idx),
+                                       template_type="simple",
+                                       figid="plot",
+                                       no_extras=True)
+    except Exception as e:
+        logging.exception("Model error")
+        return jsonify({"error": str(e)})
 
     return jsonify({"plot": graph_html})
 

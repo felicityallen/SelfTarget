@@ -1,4 +1,5 @@
-numpy
+numpy>=1.9.0
+scipy
 matplotlib
 biopython
 mpld3

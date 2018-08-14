@@ -1,6 +1,7 @@
+import pylab as PL
+PL.switch_backend('Agg')
 import io, os, csv, sys, re
 import numpy as np
-import pylab as PL
 import Bio.Seq
 from selftarget.util import getPlotDir
 from selftarget.indel import tokFullIndel
