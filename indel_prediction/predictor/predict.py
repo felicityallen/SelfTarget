@@ -77,8 +77,13 @@ def plot_predictions(theta_file, target_seq, pam_idx):
         raise Exception('Non NGG PAM (check correct index of PAM)')
 
     profile, rep_reads, in_frame = predictMutations(theta_file, target_seq, pam_idx)
+    out_filename = '%s_%d.txt' % (target_seq, pam_idx)
+    fout = io.open(out_filename,'w')
+    writePredictedProfileToSummary(profile, fout,'%.1f' % in_frame)
+    fout.close()
     setFigType('png')
-    return plotProfiles([profile], [rep_reads], [pam_idx], [False], ['Predicted'], title='In Frame: %.1f%%' % in_frame)
+    fig = plotProfiles([profile], [rep_reads], [pam_idx], [False], ['Predicted'], title='In Frame: %.1f%%' % in_frame)
+    return fig
 
 def predictProfilesBulk(theta_file, target_file):
     #Target File: a tab-delimited file with columns:  ID, Target, PAM Index
