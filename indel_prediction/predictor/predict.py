@@ -4,9 +4,8 @@ import pylab as PL
 import Bio.Seq
 import pandas as pd
 
-from selftarget.profile import fetchRepresentativeCleanReads,readSummaryToProfile, symmetricKL, fetchIndelSizeCounts, getSummaryFileSuffix
-from selftarget.oligo import getOligoIdxFromId, getFileForOligoIdx, loadOldNewMapping
-from selftarget.data import getHighDataDir, setHighDataDir
+from selftarget.profile import fetchIndelSizeCounts, getProfileCounts
+
 from selftarget.view import plotProfiles
 from selftarget.plot import setFigType
 from selftarget.util import setPlotDir, getIndelGenExe, setIndelGenExe
@@ -27,7 +26,14 @@ def fetchRepReads(genindels_file):
     f.close()
     return rep_reads
 
-def predictMutations(theta_file, target_seq, pam_idx):
+def writePredictedProfileToSummary(p1, fout, id):
+    fout.write(u'@@@%s\n' % id)
+    counts = getProfileCounts(p1)
+    for cnt,indel,_,_ in counts:
+        if cnt < 0.5: break
+        fout.write(u'%s\t-\t%d\n' % (indel, np.round(cnt)))
+
+def predictMutations(theta_file, target_seq, pam_idx, add_null=True):
 
     theta, train_set, theta_feature_columns = readTheta(theta_file)
 
@@ -49,10 +55,14 @@ def predictMutations(theta_file, target_seq, pam_idx):
 
     #Predict the profile
     p_predict, _ = computePredictedProfile(feature_data, theta, theta_feature_columns)
-    return p_predict, rep_reads
+    in_frame, out_frame, _ = fetchIndelSizeCounts(p_predict)
+    in_frame_perc = in_frame*100.0/(in_frame + out_frame)
+    if add_null:
+        p_predict['-'] = 1000
+        rep_reads['-'] = target_seq
+    return p_predict, rep_reads, in_frame_perc
 
-
-def plot_predictions(theta_file, target_seq, pam_idx, title='Title'):
+def plot_predictions(theta_file, target_seq, pam_idx):
 
     if pam_idx < 0 or pam_idx >= (len(target_seq)-3):
         raise Exception('PAM idx out of range')
@@ -66,12 +76,30 @@ def plot_predictions(theta_file, target_seq, pam_idx, title='Title'):
     if target_seq[pam_idx+1:pam_idx+3] != 'GG':
         raise Exception('Non NGG PAM (check correct index of PAM)')
 
-
-    profile, rep_reads = predictMutations(theta_file, target_seq, pam_idx)
-    profile['-'] = 1000
-    rep_reads['-'] = target_seq
+    profile, rep_reads, in_frame = predictMutations(theta_file, target_seq, pam_idx)
     setFigType('png')
-    return plotProfiles([profile], [rep_reads], [pam_idx], [False], ['Predicted'], title=title)
+    return plotProfiles([profile], [rep_reads], [pam_idx], [False], ['Predicted'], title='In Frame: %.1f%%' % in_frame)
+
+def predictProfilesBulk(theta_file, target_file):
+    #Target File: a tab-delimited file with columns:  ID, Target, PAM Index
+    profiles = []
+    f = io.open(target_file)
+    for row in csv.DictReader(f, delimiter='\t'):
+        prof, rep_reads, in_frame = predictMutations(theta_file, row['Target'], eval(row['PAM Index']))
+        profiles.append((row['ID'], prof, rep_reads, in_frame))
+    f.close()
+    return profiles
+
+def writeProfilesToFile(out_file, profiles):
+    fout = io.open(out_file, 'w')
+    for id, prof, rep_reads, in_frame in profiles:
+        writePredictedProfileToSummary(prof, fout, row['ID'] + ' %.1f' % in_Frame )
+    fout.close()
+
+def predictMutationsBulk(theta_file, target_file, out_file):
+    #Target File: a tab-delimited file with columns:  ID, Target, PAM Index
+    profiles = predictProfilesBulk(theta_file, target_file)
+    writeProfilesToFile(out_file, profiles)
 
 if __name__ == '__main__':
     

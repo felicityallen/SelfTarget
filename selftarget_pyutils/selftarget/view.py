@@ -2,12 +2,22 @@ import pylab as PL
 PL.switch_backend('Agg')
 import io, os, csv, sys, re
 import numpy as np
+import pylab as PL
 import Bio.Seq
 from selftarget.util import getPlotDir
 from selftarget.indel import tokFullIndel
 from selftarget.profile import readSummaryToProfile, fetchRepresentativeCleanReads, getProfileCounts
 from selftarget.oligo import getFileForOligoIdx
 from selftarget.plot import saveFig
+
+from matplotlib import rcParams
+rcParams['font.family'] = 'monospace'
+rcParams['font.monospace'] = ['DejaVu Sans Mono'] + rcParams['font.monospace']
+
+FORECAST_GREEN = '#%02x%02x%02x' % (0, 103, 111)
+FORECAST_ORANGE = '#%02x%02x%02x' % (244, 87, 33)
+MIN_X = -30
+MAX_X = 30
 
 def padReadForIndel(read_seq, indel, pam_idx):
     itype,isize,details,muts = tokFullIndel(indel)
@@ -21,19 +31,24 @@ def padReadForIndel(read_seq, indel, pam_idx):
     return read_seq, red_idxs, green_idxs
     
 def plotSeqLetterwise(seq, y, pam_idx, red_idxs=set(), green_idxs=set(), default_clr='black'):
+    min_xloc,max_xloc  = 0, 0
     for i,nt in enumerate(seq):
-        if i in red_idxs:	clr = 'red'
-        elif i in green_idxs:	clr = 'green'
-        else:	clr = default_clr
+        clr = FORECAST_ORANGE if i in red_idxs else FORECAST_GREEN if i in green_idxs else default_clr
+        weight = 'normal' if clr == default_clr else 'bold'
         xloc = i-pam_idx+3
-        if xloc > 0:	xloc += 0.1
-        if xloc > -28 and xloc <= 28:
-            PL.text(xloc,y, nt, verticalalignment='bottom', horizontalalignment='left', color=clr)
-    
-def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_lines=25):
+        if xloc > -1:    xloc += 0.1
+        if xloc > MIN_X and xloc <= MAX_X:
+            PL.text(xloc,y, nt, verticalalignment='bottom', horizontalalignment='left', color=clr, fontweight=weight)
+            if xloc < min_xloc:
+                min_xloc = xloc
+            if xloc > max_xloc:
+                max_xloc = xloc
+    return min_xloc,max_xloc
+
+def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_lines=10):
     if len(profiles) == 0: raise Exception('Empty list of profiles')
     
-    colors = ['C0', 'C2', 'C1']
+    colors = [FORECAST_GREEN,'C0', 'C2', 'C2','C1','C1','C3','C3','C4','C4','C5','C5','C6']
 
     PL.rcParams['svg.fonttype'] = 'none'
     ocounts = [getProfileCounts(p1) for p1 in profiles]
@@ -78,6 +93,7 @@ def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_
     ax.axis('off')
     N = min(len(union_top_indels), max_indels)
     line_height = 0.8
+    min_xloc,max_xloc = MIN_X, MAX_X
     PL.ylim( (0,(N+1.0)*line_height) )
     bar_ypos, bar_len = [[] for x in profiles], [[] for x in profiles]
     for i, (av_perc, indel) in enumerate(top_av_percs):
@@ -88,27 +104,31 @@ def plotProfiles(profiles, rep_reads, pam_idxs, reverses, labels, title='', max_
                 if R1 == 0: R1 = len(repr[indel])
                 seq = Bio.Seq.reverse_complement(repr[indel])[L1:R1] if rev else repr[indel][L1:R1]
                 padded_seq, red_idxs, green_idxs = padReadForIndel(seq, indel, pam_idx)
-                plotSeqLetterwise(padded_seq, (N-i+j*1.0/len(profiles))*line_height, pam_idx, red_idxs=red_idxs, green_idxs=green_idxs)
+                min_xloc,max_xloc = plotSeqLetterwise(padded_seq, (N-i+(j+0.3)*1.0/len(profiles))*line_height, pam_idx, red_idxs=red_idxs, green_idxs=green_idxs)
             if indel != '-':
-                bar_ypos[j].append((N-i+(j+0.5)*1.0/len(profiles))*line_height)
+                bar_ypos[j].append((N-i+(j+0.4)*1.0/len(profiles))*line_height)
                 bar_len[j].append(perc1b*scale_factor)
-    hist_loc = 35
+    hist_loc = max_xloc + 10
     for bar1_ypos, bar1_len, label1,clr in zip(bar_ypos, bar_len, labels,colors):
         PL.barh(bar1_ypos, bar1_len, height=0.8*line_height/len(profiles), left=hist_loc, label=label1, color=clr )
         for (ypos, blen) in zip(bar1_ypos, bar1_len):
             PL.text(hist_loc+blen+1,ypos-0.5/len(profiles)*line_height, '%.1f%%' % (blen/scale_factor))
-    xlims = (-35,hist_loc + max([max(x) for x in bar_len]) + 5)
-    PL.xlim( xlims[0]-10, xlims[1]+3 )
+    xlims = (min_xloc-10,MAX_X+20+(min_xloc-MIN_X))
+    PL.xlim( xlims )
     for i, (av_perc, indel) in enumerate(top_av_percs):
         if i > max_indels: break
-        PL.text(xlims[0]-3,(N-i+0.5)*line_height,indel.split('_')[0], fontweight='bold')
-        PL.plot(xlims,[(N-i)*line_height, (N-i)*line_height],'lightgrey')
-    PL.plot([0,0],[0,N*line_height],'k--')
+        if indel == '-':
+            PL.text(xlims[0],(N-i+0.4)*line_height,'Target:', fontweight='bold')
+        else:
+            PL.text(xlims[0],(N-i+0.4)*line_height,indel.split('_')[0], fontweight='bold')
+        PL.plot([min_xloc-10,max_xloc + 10],[(N-i)*line_height, (N-i)*line_height],'lightgrey')
+    PL.plot([0,0],[0,(N+1)*line_height],'k--')
+    PL.plot([min_xloc-10,hist_loc],[N*line_height,N*line_height],'k')
     PL.plot([hist_loc,hist_loc],[0,N*line_height],'k')
     PL.xticks([])
     PL.yticks([])
-    # PL.legend(loc='upper right')
-    # PL.title(title)
+    if len(labels) > 1: PL.legend(loc='upper right')
+    PL.text(hist_loc,(N+0.5)*line_height, title, fontweight='bold')
     PL.subplots_adjust(left=0.05,right=0.95,top=0.95, bottom=0.05)
     PL.show(block=False)
     PL.axis('off')
