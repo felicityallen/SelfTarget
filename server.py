@@ -1,12 +1,31 @@
-import mpld3
 import logging
-from flask import Flask, request, jsonify
+import os
 
-from indel_prediction.predictor.predict import plot_predictions as main, setIndelGenTargetExeLoc
+import mpld3
+from flask import Flask, request, jsonify, send_file
+from indel_prediction.predictor.predict import plot_predictions as main
 
 app = Flask(__name__)
 
 model_path = "indel_prediction/predictor/model_output_2000_0.01000000_1.835_theta.txt_cf0.txt"
+
+
+@app.route('/api/profile', methods=['GET'])
+def get_profile():
+    """
+    request body: {"seq": "SEQUENCE", "pam_idx": "NUMBER"}
+    :return: {"plot": "plot data"}
+    :return: {"error": "error message"}
+    """
+    data = request.args or request.get_json()
+    seq = data.get("seq", "")
+    pam_idx = int(data.get("pam_idx", ""))
+    filename = '{0}_{1}.txt'.format(seq, pam_idx)
+    if os.path.exists(filename):
+        return send_file(filename, as_attachment=True)
+    else:
+        return jsonify({'error': 'Profile with those target sequence and pam index not found'}), 404
+
 
 @app.route('/plot', methods=['POST'])
 def plot():
