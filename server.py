@@ -13,6 +13,10 @@ model_path = "indel_prediction/predictor/model_output_2000_0.01000000_1.835_thet
 @app.route('/api/profile', methods=['GET'])
 def get_profile():
     """
+    This endpoint returns a profile as a text file. It is created and saved automatically if the plot
+    has been built before (via the `plot` endpoint) for a sequence and PAM index pair.
+    If the plot has not been built, there is no profile file saved, so an error is raised.
+
     request body: {"seq": "SEQUENCE", "pam_idx": "NUMBER"}
     :return: {"plot": "plot data"}
     :return: {"error": "error message"}
@@ -30,6 +34,9 @@ def get_profile():
 @app.route('/plot', methods=['POST'])
 def plot():
     """
+    This endpoint returns a javascript code that is rendered in a browser as a profile plot
+    for a particular pair of sequence and PAM index.
+
     request body: {"seq": "SEQUENCE", "pam_idx": "NUMBER"}
     :return: {"plot": "plot data"}
     :return: {"error": "error message"}
@@ -53,8 +60,3 @@ def plot():
 
 if __name__ == "__main__":
     app.run(port=5001)
-    # seq = "CTGAGTAGCTATGCGGCCAGCAGCGAGACGCTCAGCGTGAAGCGGCAGTATCCCTCTTTCCTGCGCACCATCCCCAATC"
-    # pam_idx = 42
-    # graph_html = mpld3.fig_to_html(main(model_path, seq, pam_idx),
-    #                                template_type="simple",
-    #                                figid="plot")
