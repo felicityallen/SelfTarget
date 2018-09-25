@@ -11,7 +11,7 @@ https://partslab.sanger.ac.uk/FORECasT
 
 ## FORECasT Command line tool
 
-Follow the installation instructions below, then from a command line:
+Follow the installation instructions [here](#Installation), then from a command line:
 
 ```
 cd indel_prediction
@@ -41,9 +41,9 @@ Each line contains an identifier string for the indel followed by a - (ignore th
 
 e.g. 
 ```
--	1000	(always 1000 reads - it is the original template sequence - here for viewer).
-D2_L-3R0	550
-I1_L-2C1R0	200
+-	-	1000	(always 1000 reads - it is the original template sequence - here for viewer use).
+D2_L-3R0	-	550
+I1_L-2C1R0	-	200
 ```
 
 <output_file_prefix>_predictedreads.txt
