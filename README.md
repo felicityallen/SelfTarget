@@ -9,7 +9,7 @@ To predict and view mutational profiles for individual gRNAs, please visit the F
 
 https://partslab.sanger.ac.uk/FORECasT
 
-## Command line tool
+## FORECasT Command line tool
 
 Follow the installation instructions below, then from a command line:
 
@@ -20,7 +20,7 @@ cd predictor
 
 then...
 
-#### FORECasT Single gRNA prediction
+#### Single gRNA prediction
 
 ```
 python FORECasT.py <target DNA sequence> <PAM index (0 based)> <output_file_prefix>
@@ -57,7 +57,7 @@ ATGCTAGCTAGGGCAAGGCATGCTAGTGACTGCATGGTAC	D2_L-3R0	-
 ATGCTAGCTAGGGCATGGAGGCATGCTAGTGACTGCATGGTAC	I1_L-2C1R0	-
 ```
 
-#### FORECasT Batch mode prediction
+#### Batch mode prediction
 
 ```
 python FORECasT.py <batch_filename> <output_file_prefix>
