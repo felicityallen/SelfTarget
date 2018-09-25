@@ -126,14 +126,20 @@ def writeProfilesToFile(out_prefix, profiles_and_rr, write_rr = False):
     fout.close()
 
 def predictMutationsSingle(target_seq, pam_idx, out_prefix, theta_file = DEFAULT_MODEL):
+    print('Predicting mutations...')
     p_predict, rep_reads, in_frame_perc = predictMutations(theta_file, target_seq, pam_idx)
+    print('Writing to file...')
     writeProfilesToFile(out_prefix, [('Test Guide', p_predict, rep_reads, in_frame_perc)], write_rr=True)
+    print('Done!')
     
 def predictMutationsBulk(target_file, out_prefix, theta_file = DEFAULT_MODEL):
     #Target File: a tab-delimited file with columns:  ID, Target, PAM Index
+    print('Predicting mutations...')
     profiles_and_rr = predictProfilesBulk(theta_file, target_file)
+    print('Writing to file...')
     writeProfilesToFile(out_prefix, profiles_and_rr, write_rr=True)
-   
+    print('Done!')    
+ 
 if __name__ == '__main__':
       
     theta_file = DEFAULT_MODEL

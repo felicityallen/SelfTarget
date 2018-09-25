@@ -219,7 +219,7 @@ def calculateFeaturesForGenIndelFile( generated_indel_file, uncut_seq, cut_site,
     f.close()
 
 def readFeaturesData(features_file):
-    feature_data = pd.read_csv(features_file, skiprows=2, sep='\t')
+    feature_data = pd.read_csv(features_file, skiprows=2, sep='\t', dtype={'Inserted Seq':str})
     feature_cols = [x for x in feature_data.columns if x not in ['Oligo ID','Indel','Left','Right','Inserted Seq']]
     indel_feature_data = 1*feature_data[['Indel'] + feature_cols].groupby('Indel').any()
     indel_feature_data['Indel'] = indel_feature_data.index
