@@ -14,13 +14,12 @@ https://partslab.sanger.ac.uk/FORECasT
 1. Follow the installation instructions [here](#installation).
 
 2. After installation, from a command line:
-
 ```
 cd indel_prediction
 cd predictor
 ```
 
-then..
+3. Run single or batch prediction as described next.
 
 #### Single gRNA prediction
 
