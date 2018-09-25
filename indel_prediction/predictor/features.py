@@ -58,7 +58,7 @@ def feature_InsLoc(indel_details ):
         features = [0 for x in features]
     return features, feature_labels
 
-def feature_LocalCutSiteSequence(indel_details, lims=(-2, 2) ):
+def feature_LocalCutSiteSequence(indel_details, lims=(-5, 4) ):
     features, feature_labels = [],[]
     uncut_seq, cut_site, left, right, ins_seq = indel_details
     for offset in range(lims[0],lims[1]):
@@ -66,7 +66,17 @@ def feature_LocalCutSiteSequence(indel_details, lims=(-2, 2) ):
             feature_labels.append('CS%d_NT=%s' % (offset, nt)); features.append(uncut_seq[cut_site+offset]==nt)
     return features, feature_labels 
 
-def feature_LocalRelativeSequence(indel_details, lims=(-2, 2) ):
+def feature_LocalCutSiteSeqMatches(indel_details, lims=(-3, 2) ):
+    features, feature_labels = [],[]
+    uncut_seq, cut_site, left, right, ins_seq = indel_details
+    for offset1 in range(lims[0],lims[1]):
+        for offset2 in range(lims[0],offset1):
+            for nt in NTS:
+                feature_labels.append('M_CS%d_%d_NT=%s' % (offset1, offset2, nt))
+                features.append((uncut_seq[cut_site+offset1]==uncut_seq[cut_site+offset2]) and (uncut_seq[cut_site+offset1]==nt))
+    return features, feature_labels 
+
+def feature_LocalRelativeSequence(indel_details, lims=(-3, 3) ):
     features, feature_labels = [],[]
     uncut_seq, cut_site, left, right, ins_seq = indel_details
     for offset in range(lims[0],lims[1]):
@@ -163,11 +173,13 @@ def features_pairwise(features1, feature_labels1, features2, feature_labels2 ):
 
 def calculateFeatures(indel_details):
     all_features, all_feature_labels = [], []
-    feature_list = [feature_InsSize, feature_DelSize, feature_DelLoc, feature_InsLoc, feature_I1or2Rpt,feature_InsSeq, feature_LocalCutSiteSequence, feature_LocalRelativeSequence, features_SeqMatches, feature_microhomology]
+    feature_list = [feature_InsSize, feature_DelSize, feature_DelLoc, feature_InsLoc, feature_I1or2Rpt,feature_InsSeq, feature_LocalCutSiteSequence, feature_LocalCutSiteSeqMatches, feature_LocalRelativeSequence, features_SeqMatches, feature_microhomology]
     lin_fts = {x.__name__: x(indel_details) for x in feature_list }
     pairwise_list = [('feature_DelSize','feature_DelLoc'),('feature_InsSeq','feature_I1or2Rpt'), ('feature_microhomology','feature_DelSize')]
     pairwise_list += [('feature_microhomology','feature_DelLoc'), ('feature_LocalRelativeSequence','feature_DelSize'), ('feature_LocalCutSiteSequence','feature_InsSize')]
-    pairwise_list += [('features_SeqMatches','feature_DelSize'),('feature_LocalRelativeSequence','feature_DelLoc')]
+    pairwise_list += [('features_SeqMatches','feature_DelSize'),('feature_LocalRelativeSequence','feature_DelLoc'), ('feature_LocalCutSiteSequence','feature_DelSize')]
+    pairwise_list += [('feature_LocalCutSiteSeqMatches','feature_DelSize'),('feature_LocalCutSiteSequence','feature_DelSize'), ('feature_LocalCutSiteSequence','feature_I1or2Rpt')]
+    pairwise_list += [('feature_LocalCutSiteSeqMatches','feature_I1or2Rpt')]
     for(fname1, fname2) in pairwise_list:
         features, feature_labels = features_pairwise(lin_fts[fname1][0],lin_fts[fname1][1],lin_fts[fname2][0],lin_fts[fname2][1])
         all_features.extend(features); all_feature_labels.extend(feature_labels)

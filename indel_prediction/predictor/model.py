@@ -21,10 +21,16 @@ mpi_rank = 0
 mpi_size = 1
 
 REG_CONST = 0.01
+I1_REG_CONST = 0.01
 GEN_INDEL_FEATURES_DIR = '/features_ext_for_gen_indels'
 GEN_INDEL_LOC = '../../indel_analysis/gen_indels'
 FEATURES_DIR = GEN_INDEL_LOC + GEN_INDEL_FEATURES_DIR
 READS_DIR = GEN_INDEL_LOC + '/reads_for_gen_indels_all_samples'
+OUT_THETA_FILE = 'model_thetas.txt'
+
+def setOutputThetaFile(filename):
+    global OUT_THETA_FILE
+    OUT_THETA_FILE = filename
 
 def setFeaturesDir(dirname):
     global FEATURES_DIR
@@ -37,6 +43,10 @@ def setReadsDir(dirname):
 def setRegConst(val):
     global REG_CONST
     REG_CONST = val
+
+def setI1RegConst(val):
+    global I1_REG_CONST
+    I1_REG_CONST = val
 
 def writeTheta(out_file, feature_columns, theta, train_set):
     fout = io.open(out_file, 'w')
@@ -92,7 +102,12 @@ def loadOligoFeaturesAndReadCounts(oligo_id, sample_names):
 def calcThetaX(row, theta, feature_columns):
     return sum(theta*row[feature_columns])
 
-def computeKLObjAndGradients(theta, guideset, sample_names, feature_columns, reg_const):
+def computeRegularisers(theta, feature_columns, reg_const, i1_reg_const):
+    Q_reg = sum([i1_reg_const*val**2.0 if 'I' in name else reg_const*val**2.0 for (val, name) in zip(theta, feature_columns)])
+    grad_reg = theta*np.array([i1_reg_const if 'I' in name else reg_const for name in feature_columns])
+    return Q_reg, grad_reg
+
+def computeKLObjAndGradients(theta, guideset, sample_names, feature_columns, reg_const, i1_reg_const):
     N = len(feature_columns)
     Q, jac, minQ, maxQ = 0.0, np.zeros(N), 0.0, 1000.0
     Qs = []
@@ -101,18 +116,19 @@ def computeKLObjAndGradients(theta, guideset, sample_names, feature_columns, reg
         Y = data['Frac Sample Reads']
         data['ThetaX'] = data.apply(calcThetaX, axis=1, args=(theta,feature_columns))
         sum_exp = np.exp(data['ThetaX']).sum()
-        tmpQ = (np.log(sum_exp) + sum(Y*(np.log(Y) - data['ThetaX'])) + reg_const*sum(theta**2.0))
+        Q_reg, grad_reg =  computeRegularisers(theta, feature_columns, reg_const, i1_reg_const)
+        tmpQ = (np.log(sum_exp) + sum(Y*(np.log(Y) - data['ThetaX'])) + Q_reg)
         Q += tmpQ
         Qs.append(tmpQ)
-        jac += np.matmul(np.exp(data['ThetaX']),data[feature_columns].astype(int))/sum_exp - np.matmul(Y,data[feature_columns].astype(int)) +reg_const*theta
+        jac += np.matmul(np.exp(data['ThetaX']),data[feature_columns].astype(int))/sum_exp - np.matmul(Y,data[feature_columns].astype(int)) + grad_reg
     return Q, jac, Qs 
 
-def assessFit(theta, guideset, sample_names, feature_columns, cv_idx=0, reg_const=REG_CONST, test_only=False):
+def assessFit(theta, guideset, sample_names, feature_columns, cv_idx=0, reg_const=REG_CONST, i1_reg_const=I1_REG_CONST, test_only=False):
     #Send out thetas
     theta, done = comm.bcast((theta, False), root=0)
     while not done:
         #Compute objective and gradients
-        Q, jac, Qs = computeKLObjAndGradients(theta, guideset, sample_names, feature_columns, reg_const)
+        Q, jac, Qs = computeKLObjAndGradients(theta, guideset, sample_names, feature_columns, reg_const, i1_reg_const)
 
         #Combine all
         full_guideset = comm.gather([x for x in guideset], root=0)
@@ -122,7 +138,7 @@ def assessFit(theta, guideset, sample_names, feature_columns, cv_idx=0, reg_cons
             Q, jac, Qs = sum([x[0] for x in objs_and_grads]), sum([x[1] for x in objs_and_grads]), []
             for x in objs_and_grads: Qs.extend(x[2]) 
             Q, jac, Qs = Q/len(Qs), jac/len(Qs), Qs
-            printAndFlush(' '.join(['Q=%.5f' % Q, 'Min=%.3f' % min(Qs), 'Max=%.3f' % max(Qs), 'Num=%d' % len(Qs), 'Lambda=%e' % reg_const]))
+            printAndFlush(' '.join(['Q=%.5f' % Q, 'Min=%.3f' % min(Qs), 'Max=%.3f' % max(Qs), 'Num=%d' % len(Qs), 'Lambda=%e' % reg_const, 'I1_Lambda=%e' % i1_reg_const]))
             writeTheta('tmp_%s_%d.txt' % (OUT_THETA_FILE, cv_idx), feature_columns, theta, flatten(full_guideset))
     
         Q, jac, Qs = comm.bcast((Q, jac, Qs), root=0)
@@ -166,7 +182,7 @@ def trainModelParallel(guideset, sample_names, feature_columns, theta0, cv_idx=0
     
     guidesubsets = [guideset[i:len(guideset):mpi_size] for i in range(mpi_size)]
     if theta0 is None: theta0 = np.array([np.random.normal(loc=0.0, scale=1.0) for x in feature_columns])
-    args=(guidesubsets[mpi_rank], sample_names, feature_columns, cv_idx, REG_CONST)
+    args=(guidesubsets[mpi_rank], sample_names, feature_columns, cv_idx, REG_CONST, I1_REG_CONST)
     if mpi_rank == 0:
         result = minimize(assessFit, theta0, args=args, method='L-BFGS-B', jac=True, tol=1e-4)
         theta = result.x
@@ -174,14 +190,14 @@ def trainModelParallel(guideset, sample_names, feature_columns, theta0, cv_idx=0
         done = True
         theta, done = comm.bcast((theta, done), root=0)
     else:
-        assessFit(theta0, guidesubsets[mpi_rank], sample_names, feature_columns, cv_idx, REG_CONST)
+        assessFit(theta0, guidesubsets[mpi_rank], sample_names, feature_columns, cv_idx, REG_CONST, I1_REG_CONST)
         theta, done = None, True
     theta, done = comm.bcast((theta, done), root=0)
     return theta
 
 def testModelParallel(theta, guideset, sample_names, feature_columns):
     guidesubsets = [guideset[i:len(guideset):mpi_size] for i in range(mpi_size)]
-    assessFit( theta, guidesubsets[mpi_rank], sample_names, feature_columns,reg_const=0.0,test_only=True )
+    assessFit( theta, guidesubsets[mpi_rank], sample_names, feature_columns,reg_const=0.0,i1_reg_const=0.0,test_only=True )
 
 def recordPredictions(output_dir, theta, guideset, feature_columns ):
     guidesubsets = [guideset[i:len(guideset):mpi_size] for i in range(mpi_size)]
