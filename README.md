@@ -63,6 +63,12 @@ ATGCTAGCTAGGGCATGGAGGCATGCTAGTGACTGCATGGTAC	I1_L-2C1R0	-
 python FORECasT.py <batch_filename> <output_file_prefix>
 ```
 
+e.g.
+```
+python FORECasT.py example_batch.txt test_batch_output
+```
+
+
 where batch_filename is a tab-delimited file with columns:  ID, Target, PAM Index
 e.g.
 ```
@@ -101,7 +107,7 @@ pip install -e .
 cd indel_analysis/indelmap
 cmake . -DINDELMAP_OUTPUT_DIR=/usr/local/bin
 make && make install
-export INDELGENTARGET_EXE /usr/local/bin/indelgentarget
+export INDELGENTARGET_EXE=/usr/local/bin/indelgentarget
 ```
 
 #### Docker
