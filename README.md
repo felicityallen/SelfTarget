@@ -11,7 +11,7 @@ https://partslab.sanger.ac.uk/FORECasT
 
 ## FORECasT Command line tool
 
-Follow the installation instructions [here](#Installation), then from a command line:
+Follow the installation instructions [here](#installation), then from a command line:
 
 ```
 cd indel_prediction
