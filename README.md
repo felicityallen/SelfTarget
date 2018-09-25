@@ -3,7 +3,7 @@
 
 Scripts for processing and predicting CRISPR/Cas9-generated mutations
 
-## Web server
+## FORECasT Web server
 
 To predict and view mutational profiles for individual gRNAs, please visit the FORECasT website at:
 
@@ -20,7 +20,7 @@ cd predictor
 
 then...
 
-#### Single gRNA prediction
+#### FORECasT Single gRNA prediction
 
 ```
 python FORECasT.py <target DNA sequence> <PAM index (0 based)> <output_file_prefix>
@@ -29,7 +29,7 @@ python FORECasT.py <target DNA sequence> <PAM index (0 based)> <output_file_pref
 e.g. 
 
 ```
-python FORECasT.py ATGCTAGCTAGGGCATGAGGCATGCTAGTGACTGCATGGTAC 17
+python FORECasT.py ATGCTAGCTAGGGCATGAGGCATGCTAGTGACTGCATGGTAC 17 test_output
 ```
 
 Output will be in 
@@ -41,7 +41,7 @@ Each line contains an identifier string for the indel followed by a - (ignore th
 
 e.g. 
 ```
--			1000	(this will always have 1000 reads assigned - it is the original template, ignore it).
+-	1000	(always 1000 reads - it is the original template sequence - here for viewer).
 D2_L-3R0	550
 I1_L-2C1R0	200
 ```
@@ -57,7 +57,7 @@ ATGCTAGCTAGGGCAAGGCATGCTAGTGACTGCATGGTAC	D2_L-3R0	-
 ATGCTAGCTAGGGCATGGAGGCATGCTAGTGACTGCATGGTAC	I1_L-2C1R0	-
 ```
 
-#### Batch mode prediction
+#### FORECasT Batch mode prediction
 
 ```
 python FORECasT.py <batch_filename> <output_file_prefix>
