@@ -11,14 +11,16 @@ https://partslab.sanger.ac.uk/FORECasT
 
 ## FORECasT Command line tool
 
-Follow the installation instructions [here](#installation), then from a command line:
+1. Follow the installation instructions [here](#installation).
+
+2. After installation, from a command line:
 
 ```
 cd indel_prediction
 cd predictor
 ```
 
-then...
+then..
 
 #### Single gRNA prediction
 
