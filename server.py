@@ -7,7 +7,7 @@ from indel_prediction.predictor.predict import plot_predictions as main
 
 app = Flask(__name__)
 
-model_path = "indel_prediction/predictor/model_output_2000_0.01000000_1.835_theta.txt_cf0.txt"
+model_path = "indel_prediction/predictor/model_output_10000_0.01000000_0.01000000_-0.607_theta.txt_cf0.txt"
 
 
 @app.route('/api/profile', methods=['GET'])
