@@ -58,5 +58,10 @@ def plot():
     return jsonify({"plot": graph_html})
 
 
+@app.route('/ping', methods=['GET'])
+def ping():
+    return "The server is alive!", 200
+
+
 if __name__ == "__main__":
     app.run(port=5001)
