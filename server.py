@@ -1,3 +1,4 @@
+import http
 import logging
 import os
 
@@ -8,6 +9,11 @@ from indel_prediction.predictor.predict import plot_predictions as main
 app = Flask(__name__)
 
 model_path = "indel_prediction/predictor/model_output_10000_0.01000000_0.01000000_-0.607_theta.txt_cf0.txt"
+
+
+@app.route('/ping', methods=['GET'])
+def ping():
+    return "The server is alive!", http.HTTPStatus.OK
 
 
 @app.route('/api/profile', methods=['GET'])
@@ -23,12 +29,14 @@ def get_profile():
     """
     data = request.args or request.get_json()
     seq = data.get("seq", "")
-    pam_idx = int(data.get("pam_idx", ""))
+    pam_idx = data.get("pam_idx", "")
+    if not (seq and pam_idx):
+        return jsonify({'error': 'Target sequence or pam index not provided'}), http.HTTPStatus.BAD_REQUEST
     filename = '{0}_{1}.txt'.format(seq, pam_idx)
     if os.path.exists(filename):
         return send_file(filename, as_attachment=True)
     else:
-        return jsonify({'error': 'Profile with those target sequence and pam index not found'}), 404
+        return jsonify({'error': 'Profile with those target sequence and pam index not found'}), http.HTTPStatus.BAD_REQUEST
 
 
 @app.route('/plot', methods=['POST'])
@@ -45,7 +53,7 @@ def plot():
     seq = data.get("seq", "")
     pam_idx = int(data.get("pam_idx", ""))
     if not (seq and pam_idx):
-        return jsonify({'message': 'Empty request'}), 400
+        return jsonify({'message': 'Empty request'}), http.HTTPStatus.BAD_REQUEST
     try:
         graph_html = mpld3.fig_to_html(main(model_path, seq, pam_idx),
                                        template_type="simple",
@@ -53,7 +61,7 @@ def plot():
                                        no_extras=True)
     except Exception as e:
         logging.exception("Model error")
-        return jsonify({"error": str(e)})
+        return jsonify({"error": str(e)}), http.HTTPStatus.INTERNAL_SERVER_ERROR
 
     return jsonify({"plot": graph_html})
 
