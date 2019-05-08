@@ -118,7 +118,7 @@ def readSummaryToProfile(filename, profile, oligoid=None, noexclude=False, remov
     wt_indels = []
     for toks in reader:
         if toks[0][:3] == '@@@':
-            curr_oligo_id = toks[0][3:]
+            curr_oligo_id = toks[0][3:].split()[0]
             continue
         if oligoid != curr_oligo_id:
             continue
