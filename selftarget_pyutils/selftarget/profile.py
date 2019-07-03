@@ -263,7 +263,7 @@ def fetchRepresentativeCleanReads(mapped_profile_filename, rep_reads, oligoid=No
         if toks[0][:3] == '@@@':
             curr_oligo_id = toks[0][3:]
             continue
-        if oligoid != curr_oligo_id:
+        if curr_oligo_id.startswith(oligoid):
             continue
         indel = toks[1]
         if indel not in rep_reads:
@@ -276,6 +276,22 @@ def fetchRepresentativeCleanReads(mapped_profile_filename, rep_reads, oligoid=No
             rep_reads[indel] = toks[0]
             used_null_oligo = toks[-2]
             
+    f.close()
+
+
+def fetchReads(mapped_profile_filename, rep_reads, oligoid=None):
+    curr_oligo_id = None
+    f = io.open(mapped_profile_filename)
+    for toks in csv.reader(f, delimiter='\t'):
+        if toks[0][:3] == '@@@':
+            curr_oligo_id = toks[0][3:]
+            continue
+        if curr_oligo_id.startswith(oligoid):
+            continue
+        indel = toks[0]
+        if indel not in rep_reads:
+            rep_reads[indel] = toks[1]
+
     f.close()
     
 def fetchIndelSizeCounts(p1):

@@ -1,18 +1,16 @@
-import io, os, csv, sys, re, random, itertools, subprocess
+import csv
+import io
+import os
+import random
+import subprocess
+
 import numpy as np
-import pylab as PL
-import Bio.Seq
-import pandas as pd
-
-from selftarget.profile import fetchIndelSizeCounts, getProfileCounts
-
-from selftarget.view import plotProfiles
-from selftarget.plot import setFigType
-from selftarget.util import setPlotDir, getIndelGenExe, setIndelGenExe
-from selftarget.indel import tokFullIndel
-
-from predictor.model import computePredictedProfile, readTheta, setFeaturesDir, setReadsDir
 from predictor.features import calculateFeaturesForGenIndelFile, readFeaturesData
+from predictor.model import computePredictedProfile, readTheta
+from selftarget.indel import tokFullIndel
+from selftarget.plot import setFigType
+from selftarget.profile import fetchIndelSizeCounts, getProfileCounts, fetchReads
+from selftarget.view import plotProfiles
 
 INDELGENTARGET_EXE = os.getenv("INDELGENTARGET_EXE", "C:/Users/fa9/postdoc/indelmap/build/Release/indelgentarget.exe")
 DEFAULT_MODEL = 'model_output_10000_0.01000000_0.01000000_-0.607_theta.txt_cf0.txt' 
@@ -76,6 +74,15 @@ def predictMutations(theta_file, target_seq, pam_idx, add_null=True):
         p_predict['-'] = 1000
         rep_reads['-'] = target_seq[left_trim:]
     return p_predict, rep_reads, in_frame_perc
+
+
+def build_plot_by_profile(filename, profile, oligo_id):
+    rep_reads = {}
+    fetchReads(filename, rep_reads, oligo_id)
+    setFigType('png')
+    fig = plotProfiles([profile], [rep_reads], [43], [False], ['Predicted'])
+    return fig
+
 
 def plot_predictions(theta_file, target_seq, pam_idx):
 
@@ -149,4 +156,3 @@ if __name__ == '__main__':
     plotProfiles([profile],[rep_reads],[pam_idx],[False],['Predicted'])
 
     import pdb; pdb.set_trace()
-    

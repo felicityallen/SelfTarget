@@ -6,3 +6,5 @@ mpld3
 jinja2
 flask
 pandas
+requests
+mongoengine
