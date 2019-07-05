@@ -5,10 +5,9 @@ import tempfile
 
 import mpld3
 import requests
-
 from flask import Flask, request, jsonify, send_file
-from mongoengine import *
 from indel_prediction.predictor.predict import plot_predictions
+from mongoengine import connect, Document, StringField, MultipleObjectsReturned
 from predictor.predict import build_plot_by_profile
 from selftarget.profile import readSummaryToProfile
 from werkzeug.exceptions import BadRequest
@@ -40,11 +39,12 @@ class NoWGEException(Exception):
         self.seq = seq
 
     def msg(self):
-        return f"Error - no WGE found for seq {self.species} {self.seq}"
+        return f"Error - no WGE found for seq {self.seq} {self.species}"
 
 
 def get_obj_by_id(id, species):
     wge = False
+    # if id is integer, this is wge, if not, it's oligo_id
     try:
         wge = int(id) or True
     except ValueError:
@@ -122,7 +122,10 @@ def plot():
         species = data.get("species", "")
         if not ((wge or oligoid) and species):
             raise BadRequest()
-        obj = get_obj_by_id(wge or oligoid, species)
+        try:
+            obj = get_obj_by_id(wge or oligoid, species)
+        except NoWGEException as ex:
+            return jsonify({"error": ex.msg()}), http.HTTPStatus.NOT_FOUND
         reads_file, profile_file, profile = read_profile(obj)
         try:
             graph_html = mpld3.fig_to_html(build_plot_by_profile(reads_file, profile, obj['oligo_id']),
@@ -132,7 +135,6 @@ def plot():
         except Exception as e:
             logging.exception("Model error")
             return jsonify({"error": str(e)}), http.HTTPStatus.INTERNAL_SERVER_ERROR
-
 
     elif request.method == 'POST':
         data = request.form or request.get_json()
