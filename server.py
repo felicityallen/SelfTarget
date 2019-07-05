@@ -20,10 +20,10 @@ model_path = "indel_prediction/predictor/model_output_10000_0.01000000_0.0100000
 HUMAN = "human"
 MOUSE = "mouse"
 
-MONGODB_HOST = os.getenv("MONGODB_HOST", 'mongodb://cellgeni:cellgeni@172.27.82.34:32556/wge')
+MONGODB_HOST = os.getenv("MONGODB_HOST")
 S3_BASE = os.getenv("S3_BASE", "https://fa9.cog.sanger.ac.uk/")
 DB_FILEPATH_BASE = os.getenv("DB_FILEPATH_BASE", "/lustre/scratch117/cellgen/team227/FORECasT_profiles_for_AK/")
-connect(host=MONGODB_HOST)
+connect(host=MONGODB_HOST, connect=False)
 
 
 class WGE(Document):
