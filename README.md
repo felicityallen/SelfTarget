@@ -9,6 +9,19 @@ To predict and view mutational profiles for individual gRNAs, please visit the F
 
 https://partslab.sanger.ac.uk/FORECasT
 
+## Precomputed FORECasT Results for Human and Mouse CCDS
+
+Precomputed profiles for all gRNAs in human and mouse CCDS regions are available here:
+
+https://fa9.cog.sanger.ac.uk/index.html
+
+Entries are collected into all gRNAs corresponding to each CCDS id. Within each file ending in _predicted_mapped_indel_summary.txt, the entries for each gRNA are separated by a line with 
+
+```
+@@@id guide_seq predicted_in_frame 
+```
+where the id contains the CCDS id, the chomosome coordinates and the strand. The next line is '- - 1000' and can be ignored (there for visualization only). The following lines are the particular indels predicted and their predicted counts (assuming total reads of 1000, and ignoring indels with less than 1 read). For the read sequences, see corrresponding entries in the _predicted_rep_reads.txt files.
+
 ## FORECasT Command line tool
 
 1. Follow the installation instructions [here](#installation).
