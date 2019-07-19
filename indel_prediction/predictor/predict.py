@@ -116,7 +116,7 @@ def writeProfilesToFile(out_prefix, profiles_and_rr, write_rr = False):
     if write_rr: fout_rr = io.open(out_prefix + '_predictedreads.txt', 'w')
     for (guide_id, prof, rep_reads, in_frame) in profiles_and_rr:
         if len(profiles_and_rr) > 1: 
-            id_str = u'@@@%s\n' % guide_id
+            id_str = u'@@@%s\t%.3f\n' % (guide_id, in_frame)
             fout.write(id_str)
             if write_rr: 
                 fout_rr.write(id_str)
