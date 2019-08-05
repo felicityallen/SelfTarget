@@ -261,9 +261,9 @@ def fetchRepresentativeCleanReads(mapped_profile_filename, rep_reads, oligoid=No
     used_null_oligo = 'SOME'
     for toks in csv.reader(f, delimiter='\t'):
         if toks[0][:3] == '@@@':
-            curr_oligo_id = toks[0][3:]
+            curr_oligo_id = toks[0][3:].split()[0]
             continue
-        if curr_oligo_id.startswith(oligoid):
+        if oligoid != curr_oligo_id:
             continue
         indel = toks[1]
         if indel not in rep_reads:
@@ -284,10 +284,11 @@ def fetchReads(mapped_profile_filename, rep_reads, oligoid=None):
     f = io.open(mapped_profile_filename)
     for toks in csv.reader(f, delimiter='\t'):
         if toks[0][:3] == '@@@':
-            curr_oligo_id = toks[0][3:]
+            curr_oligo_id = toks[0][3:].split()[0]
             continue
-        if curr_oligo_id.startswith(oligoid):
+        if oligoid != curr_oligo_id:
             continue
+
         indel = toks[0]
         if indel not in rep_reads:
             rep_reads[indel] = toks[1]
