@@ -11,6 +11,19 @@ from selftarget.data import getHighDataDir, setHighDataDir
     
 MIN_READS = 20
 
+def loadI1andMCIData(results_file, guideset=set()):
+    data = pd.read_csv(results_file[0], sep='\t')
+    mci_data = pd.read_csv(results_file[1], sep='\t')
+    po_mci_data =  mci_data.groupby('Oligo Id')[['Most Common Indel', 'MCI Type']].sum()    #Note: concatenates strings if Oligos have multiple most common indels, so when matching replicates, has to be the same for the other replicates (unlikely)
+    po_mci_data['Oligo Id'] = po_mci_data.index
+    rd_mci_data = mci_data.groupby('Oligo Id')[['MCI Reads']].mean()
+    rd_mci_data['Oligo Id'] = rd_mci_data.index
+    merged_data = pd.merge(data, po_mci_data, on='Oligo Id', how='inner')
+    merged_rd_data = pd.merge(merged_data, rd_mci_data, on='Oligo Id', how='inner')
+    if len(guideset) > 0: merged_rd_data = merged_rd_data.loc[merged_rd_data['Oligo Id'].isin(guideset)] 
+
+    return merged_rd_data
+
 def loadIndelData():
     indel_data_new = pd.read_csv(getHighDataDir() + '/i1/exp_target_pam_new_gen_i1_indels.txt', sep='\t', header=1)
     indel_data_old = pd.read_csv(getHighDataDir() + '/i1/exp_target_pam_old_gen_i1_indels.txt', sep='\t', header=1)
@@ -21,12 +34,12 @@ def loadIndelData():
 
 def mergeWithIndelData(data, label=''):
     indel_data = loadIndelData()
+    indel_data = indel_data[[x for x in indel_data.columns if x != 'Oligo Id']]
     merged_data = pd.merge(data, indel_data, how='inner', left_on='Oligo Id', right_on='Short Oligo Id')
     merged_data['Is Ambiguous'] = (merged_data['Repeat Nucleotide Left'] == merged_data['Repeat Nucleotide Right'])
     merged_data['I1_Rpt Left Reads - NonAmb'] = merged_data['I1_Rpt Left Reads']*(1-merged_data['Is Ambiguous'])
     merged_data['I1_Rpt Right Reads - NonAmb'] = merged_data['I1_Rpt Right Reads']*(1-merged_data['Is Ambiguous'])
     merged_data['Ambiguous Rpt Reads'] = merged_data['Is Ambiguous']*(merged_data['I1_Rpt Left Reads'] + merged_data['I1_Rpt Right Reads'])
-    merged_data['Oligo Id'] = merged_data.index
     pie_labels = ['I1_Rpt Left Reads - NonAmb','I1_Rpt Right Reads - NonAmb','Ambiguous Rpt Reads','I1_NonRpt Reads']
     merged_data['I1 Total'] = merged_data[pie_labels].sum(axis=1)
     return merged_data
@@ -129,6 +142,51 @@ def plotMergedPieDataWithAmbig(all_result_outputs, label='', norm='I1 Total'):
     PL.show(block=False)
     saveFig('ambig_pie')
 
+def plotDominantPieDataWithAmbig(all_result_outputs, label=''):
+    pie_labels = ['I1_Rpt Left Reads - NonAmb','Ambiguous Rpt Reads','I1_Rpt Right Reads - NonAmb','I1_NonRpt Reads']
+    mci_merged_data = mergeSamples(all_result_outputs, [], data_label='i1IndelData')
+    mci_merged_data['Equal MCI'] = (mci_merged_data['Most Common Indel']==mci_merged_data['Most Common Indel 2']) & (mci_merged_data['Most Common Indel']==mci_merged_data['Most Common Indel 3'])
+    mci_common_i1 = mci_merged_data.loc[mci_merged_data['Equal MCI'] & (mci_merged_data['MCI Type'] == 'I1')]
+    labels = ['Repeated\nleft nucleotide', 'Ambiguous\n(Left = Right)', 'Repeated\nright nucleotide', 'Non-repeated\nnucleotide']
+    pie_data = []
+    for label in pie_labels:
+        is_rpt = lambda row: row['MCI Reads'] == row[label]
+        pie_data.append(sum(mci_common_i1.apply(is_rpt,axis=1))*100.0/len(mci_common_i1))
+    PL.figure(figsize=(3,3))
+    PL.pie(pie_data, labels=labels, autopct='%.1f', labeldistance=1.05, startangle=180.0, counterclock=False)
+    PL.title('Dominant single nucleotide insertions (I1)\n%d from %d gRNAs' % (len(mci_common_i1), len(mci_merged_data)))
+    PL.show(block=False)
+    saveFig('I1_dom_pie_3_rep')
+
+def plotDominantBars(all_result_outputs, label=''):
+    pie_labels = ['I1_Rpt Left Reads - NonAmb','Ambiguous Rpt Reads','I1_Rpt Right Reads - NonAmb','I1_NonRpt Reads']
+    mci_merged_data = mergeSamples(all_result_outputs, [], data_label='i1IndelData')
+    mci_merged_data['Equal MCI'] = (mci_merged_data['Most Common Indel']==mci_merged_data['Most Common Indel 2']) & (mci_merged_data['Most Common Indel']==mci_merged_data['Most Common Indel 3'])
+    mci_merged_data['Is Dominant I1'] = (mci_merged_data['Equal MCI'] & (mci_merged_data['MCI Type'] == 'I1'))
+    
+    oligo_data =  pd.read_csv(getHighDataDir() + '/ST_June_2017/data/self_target_oligos_details_with_pam_details.csv',sep='\t')
+    remove_under = lambda x: x.replace('_','')
+    oligo_data['Oligo Id'] = oligo_data['ID'].apply(remove_under)
+    merged_mci_data = pd.merge(mci_merged_data, oligo_data[['Oligo Id','Guide']], how='inner',on='Oligo Id')
+
+    nt_perc_i1, cnt_labels = [], []
+    nts = 'ATGC'
+    for nt in nts:
+        is_nt = lambda guide: (guide[-4] == nt)
+        nt_data = merged_mci_data.loc[merged_mci_data['Guide'].apply(is_nt)]
+        nt_perc_i1.append(sum(nt_data['Is Dominant I1'])*100.0/len(nt_data))
+        cnt_labels.append('%d/%d' % (sum(nt_data['Is Dominant I1']),  len(nt_data)))
+    
+    PL.figure()
+    PL.bar(range(4), nt_perc_i1, width=0.8)
+    for i, cnt in enumerate(cnt_labels):
+        PL.text(i-0.3,nt_perc_i1[i]+5.0,cnt)
+    PL.xticks(range(4), [x for x in nts])
+    PL.xlabel('Nucleotide on Left of cut-site')
+    PL.ylabel('Percent gRNAs with single nucleotide insertion\nas most common indel in all 3 replicates')
+    PL.show(block=False)
+    saveFig('I1_bar_3_rep')
+    
 def plotVertHistI1(all_result_outputs, label=''):
     plotVerticalHistSummary(all_result_outputs,label=label,data_label='I1RptPercs',plot_label='i1_rpt_verthist', hist_width=5000, hist_bins=100)
 
@@ -152,12 +210,15 @@ def plotBarSummaryI1RptFracs(all_result_outputs, label=''):
 
 def runAnalysis():
 	
-    spec = {'results_dir':getHighDataDir() + '/i1/i1_summaries',
-            'dirname_to_result_fn': lambda x: '%s.txt' % x,
-            'result_to_dirname_fn': lambda x: x.split('/')[-1][:-4],
-            'py_func_load': defaultLoadData,
+    spec = {'results_specs': [{'results_dir':getHighDataDir() + '/i1/i1_summaries',
+                              'dirname_to_result_fn': lambda x: '%s.txt' % x,
+                              'result_to_dirname_fn': lambda x: x.split('/')[-1][:-4]},
+                            {'results_dir':getHighDataDir() + '/indel_details/indel_pie_summaries_per_oligo',
+                              'dirname_to_result_fn': lambda x: '%s.txt' % x,
+                              'result_to_dirname_fn': lambda x: x.split('/')[-1][:-4]}],
+            'py_func_load': loadI1andMCIData,
             'py_funcs_per_result': [(mergeWithIndelData, 'i1IndelData')], 
-            'py_funcs_all_results': [plotMergedPieDataWithAmbig, plotMergedI1Repeats],
+            'py_funcs_all_results': [plotDominantBars,plotDominantPieDataWithAmbig,plotMergedPieDataWithAmbig, plotMergedI1Repeats],
             'check_output_fn': lambda x: True,
             'reads_colname': 'Total reads',
             'min_reads': MIN_READS,

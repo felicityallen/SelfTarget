@@ -11,7 +11,7 @@ from selftarget.util import mergeSamples, getPlotDir, analyseResultsPerPartition
 from selftarget.plot import plotBarSummary, saveFig
 from selftarget.data import setHighDataDir, getHighDataDir
 
-MIN_READS = 100
+MIN_READS = 20
 PLOT_COLORS = ['red','blue','green','orange','purple','cyan','lightblue','darkgreen','yellow','magenta','gray','navy']
 
 def getRegrLine(xdata, ydata):
@@ -58,7 +58,7 @@ def plotMicrohomologyMismatches(all_result_outputs, label=''):
     
     mut_hdrs =  ['Left Mut', 'Right Mut','Merged Mut1', 'Merged Mut2']
     cols_to_sum = [x + ' Indel Reads in Mut' for x in mut_hdrs] + ['Orig Indel Reads in Orig', 'Mut Non-Null Reads', 'Orig Non-Null Reads'] 
-    common_cols = ['Oligo ID','Mapped Oligo Id','Num Mismatches','Orig MH','Left Mut-MH','Right Mut-MH','Merged Mut 1 MH','Merged Mut 2 MH','Orig Indel','Left Mut-MH Indel','Right Mut-MH Indel','Merge Mut 1 Indel','Merge Mut 2 Indel']
+    common_cols = ['Oligo ID','Mapped Oligo Id','Num Mismatches', 'Orig Indel','Orig MH','Left Mut-MH','Right Mut-MH'] #,'Merged Mut 1 MH','Merged Mut 2 MH','Orig Indel','Left Mut-MH Indel','Right Mut-MH Indel','Merge Mut 1 Indel','Merge Mut 2 Indel']
     data =  mergeSamples(all_result_outputs, cols_to_sum, merge_on=common_cols)
 
     getLeft = lambda indel: tokFullIndel(indel)[2]['L']
@@ -92,10 +92,10 @@ def plotMicrohomologyMismatches(all_result_outputs, label=''):
 
     mh_indel_types = [('Orig Indel','Left Mut'), ('Orig Indel','Right Mut'), ('Orig Indel','All Mut'),('Left Mut','Right Mut') ]
  
-    label_lookup = {'Orig Indel': 'Perc. mutated reads of corresponding microhomology-\nmediated deletion with no sequence mismatches',
-                    'Left Mut': 'Perc. mutated reads of mismatched microhomology-\nmediated deletion with retained left sequence',
-                    'Right Mut': 'Perc mutated reads of mismatched microhomology-\nmediated deletion with retained right sequence',
-                    'All Mut': 'Perc mutated reads of mismatched microhomology-\nmediated deletion (All)'
+    label_lookup = {'Orig Indel': 'Percent of mutated reads of\ncorresponding deletion (no mismatch)',
+                    'Left Mut': 'Percent of mutated reads of corresponding\ndeletion with retained left sequence',
+                    'Right Mut': 'Percent of mutated reads of corresponding\ndeletion with retained right sequence',
+                    'All Mut': 'Percent of mutated reads of\ncorresponding deletion (mismatches)'
         }
 
     fig1 = PL.figure(figsize=(4,4))
@@ -111,8 +111,9 @@ def plotMicrohomologyMismatches(all_result_outputs, label=''):
                 sty, lsty = 'o', '-'
                 sel_data = nm_data.loc[(nm_data['MH Size'] >= 6) & (nm_data['MH Size'] <= 15)]
 
-                PL.plot(sel_data[mh_typex + ' Reads Ratio'], sel_data[mh_typey + ' Reads Ratio'], sty, color=clr, markersize=4, label='No. MH Mismatches=%d' % (nm))
                 rx, ry, grad = getRegrLine(sel_data[[mh_typex + ' Reads Ratio']], sel_data[[mh_typey + ' Reads Ratio']])
+                PL.plot(sel_data[mh_typex + ' Reads Ratio'], sel_data[mh_typey + ' Reads Ratio'], sty, color=clr, markersize=4, label='%d mismatch%s (R=%.2f, %d gRNAs)' % (nm, 'es' if nm==2 else '', grad, len(sel_data)), alpha=0.5)
+
                 if not is_all: print(grad, nm, mh_typex, mh_typey)
                 if i != 3: PL.plot(rx, ry, lsty, color=clr, linewidth=2)
 

@@ -34,8 +34,8 @@ def writeMCISummary(fout, id, p1, stats1, oligo_det, more_indels=False):
                     mh_seq = left_c_seq
             altered_seq = getSequence(oligo_det, details['L'] +1, details['R']-1)  #Note includes MH seq at both ends
 
-        str_args = (id, mci, details['L'], details['R'],details['C'],itype,isize,mci_reads,total_reads,mh_seq)
-        fout.write(u'%s\t%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%s\n' % str_args)
+        str_args = (id, mci, details['L'], details['R'],details['C'],itype,isize,mci_reads,total_reads,mh_seq,altered_seq)
+        fout.write(u'%s\t%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%s\t%s\n' % str_args)
 
 if __name__ == '__main__':
 
@@ -56,7 +56,7 @@ if __name__ == '__main__':
         oligo_lookup = loadExpOligoLookup(subdir)
 
         #For each Oligo, summarise details of its most common indel
-        fout.write(u'Oligo Id\tMost Common Indel\tLeft\tRight\tCentral\tType\tSize\tMCI Reads\tTotal reads\tMicrohomology Sequence\n')
+        fout.write(u'Oligo Id\tMost Common Indel\tLeft\tRight\tCentral\tType\tSize\tMCI Reads\tTotal reads\tMicrohomology Sequence\tAltered Sequence\n')
         sum_files = getIndelSummaryFiles(subdir)
         for filename in sum_files:
             file_prefix = filename.split('/')[-1][:-23]

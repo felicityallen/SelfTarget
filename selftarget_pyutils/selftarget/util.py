@@ -1,6 +1,6 @@
 import io, os, csv, sys, re
 from Bio import SeqIO
-from selftarget.data import getHighDataDir, getAllDataDirs, isNullDir, getShortDir, getSubdirs, getSampleSelectors, sortSampleNames
+from selftarget.data import getHighDataDir, getAllDataDirs, isNullDir, getShortDir, getSubdirs, getSampleSelectors, sortSampleNames, parseSampleName
 from selftarget.oligo import partitionGuides
 import pandas as pd
 
@@ -94,8 +94,13 @@ def getCommonKeys(dicts):
     return common_keys 
     
 def mergeSamples(all_result_outputs, cols_to_sum, merge_on='Oligo Id',data_label='Data'):
-    datas = [x[0][data_label] for x in all_result_outputs]
-    merged_data = pd.merge(datas[0],datas[1],how='outer',on=merge_on, suffixes=['', ' 2']).fillna(0)
+    merge_cols = [merge_on] if type(merge_on) != list else merge_on
+    if len(cols_to_sum) > 0: datas = [x[0][data_label][merge_cols + cols_to_sum] for x in all_result_outputs]
+    else: datas = [x[0][data_label] for x in all_result_outputs]
+    if len(datas) > 1:
+        merged_data = pd.merge(datas[0],datas[1],how='outer',on=merge_cols, suffixes=['', ' 2']).fillna(0)
+    else:
+        merged_data = datas[0]
     for i, data in enumerate(datas[2:]):
         merged_data = pd.merge(merged_data, data,how='outer',on=merge_on, suffixes=['', ' %d' % (i+3)]).fillna(0)
     suffix = lambda i: ' %d' % (i+1) if i > 0 else ''
@@ -197,9 +202,10 @@ def loadFromPickle(filename):
     import pickle; object = pickle.load(f); f.close()
     return object
 
-def defaultLoadData(results_file, guideset=set()):
+def defaultLoadData(results_file, guideset=set(), oligo_id_str='Oligo Id'):
+
     data = pd.read_csv(results_file, sep='\t')
-    if len(guideset) > 0: data = data.loc[data['Oligo Id'].isin(guideset)] 
+    if len(guideset) > 0: data = data.loc[data[oligo_id_str].isin(guideset)] 
     return data
 
 def getCommonGuideset(results_list, part_guideset, data_function=defaultLoadData, id_colname='Oligo Id', reads_colname='Total reads', min_reads=0):
@@ -209,6 +215,7 @@ def getCommonGuideset(results_list, part_guideset, data_function=defaultLoadData
         if len(result) == 1:    data = data_function(result[0])
         else:   data = data_function(result)
         data = data.loc[data[reads_colname] > min_reads]
+       
         guides = set([x for x in data[id_colname]])
         if len(guides) < 0.2*len(common_guides) and result != results_list[0]:
             results_to_skip.append(result)
@@ -251,6 +258,7 @@ def analyseResultsPerPartition( spec ):
             #Collect results to be processed
             all_result_outputs = []
             get_result = lambda x, sp: sp['results_dir'] + '/' + sp['dirname_to_result_fn'](x)
+
             results_list = [[get_result(x, sp) for sp in spec['results_specs']] for x in all_dirs if selector(x)]
             
             #Find which guides are common to all samples

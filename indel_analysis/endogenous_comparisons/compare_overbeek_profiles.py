@@ -19,9 +19,9 @@ def plotInFrame(overbeek_inframes, ours_inframes, oof_sel_overbeek_ids, pred_res
 
     PL.figure(figsize=(4.2,4.2))
     data = pd.read_csv(pred_results_dir + '/old_new_kl_predicted_summaries.txt', sep='\t').fillna(-1.0)
-    label1, label2 = 'Old In Frame Perc', 'New In Frame Perc'
+    label1, label2 = 'New 2x800x In Frame Perc', 'New 1600x In Frame Perc'
     xdata, ydata = data[label1], data[label2]
-    PL.plot(xdata,ydata, '.', label='Synthetic between library (R=%.2f)' %  pearsonr(xdata,ydata)[0], color='C0')
+    PL.plot(xdata,ydata, '.', label='Synthetic between library (R=%.2f)' %  pearsonr(xdata,ydata)[0], color='C0',alpha=0.15)
     PL.plot(overbeek_inframes, ours_inframes, '^', label='Synthetic vs Endogenous (R=%.2f)' % pearsonr(overbeek_inframes, ours_inframes)[0], color='C1')
     for (x,y,id) in zip(overbeek_inframes, ours_inframes, oof_sel_overbeek_ids):
         if abs(x-y) > 25.0: PL.text(x,y,id)
@@ -29,6 +29,8 @@ def plotInFrame(overbeek_inframes, ours_inframes, oof_sel_overbeek_ids, pred_res
     PL.ylabel('Percent In-Frame Mutations')
     PL.xlabel('Percent In-Frame Mutations')
     PL.legend()
+    PL.xticks([],[])
+    PL.yticks([],[])
     PL.show(block=False)
     saveFig('in_frame_full_scatter')
 
@@ -114,7 +116,9 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
 
         if numread2 == 0: continue
         
-        #Read all the new and old profiles together
+        p1_new_reps, p1_old_reps = [{},{}],[{},{}]
+        rr_new_reps, rr_old_reps = [{},{}],[{},{}]
+        #Read all the new and old profiles
         pam_loc1, pam_dir1 = None, None
         for oligo_id, is_old in mappings[overbeek_id]:
 
@@ -126,14 +130,21 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
             exptarget_filename = oligo_fileprefix + '_exptargets.txt'
             if is_old:
                 oligo_dirs, p1_old_new, null_oligo_dir = old_dirs, p1_old, 'ST_April_2017/data/NULL_Old/mapped_reads/Oligos_71'
+                p1_reps, rr_reps = p1_old_reps, rr_old_reps
             else:
                 oligo_dirs, p1_old_new,  null_oligo_dir = new_dirs, p1_new,'ST_April_2017/data/NULL_New/mapped_reads/Oligos_71'
+                p1_reps, rr_reps = p1_new_reps, rr_new_reps
                 
             for oligo_dir in [getHighDataDir()+ '/' + x for x in oligo_dirs]:
                 nr1, pa1, nn1  = readSummaryToProfile(oligo_dir + '/' + oligo_filename, p1_old_new, oligoid=oligo_id, remove_long_indels=remove_long_indels, remove_wt = remove_wt, wt_thresh=wt_thresh)
                 numread1, perc_accept1, num_null1  = readSummaryToProfile(oligo_dir + '/' + oligo_filename, p1, oligoid=oligo_id, remove_long_indels=remove_long_indels, remove_wt = remove_wt, wt_thresh=wt_thresh)
-                if selected_overbeek_id is not None and os.path.isfile(oligo_dir + '/' + read_filename): 
+                if 'DPI7' in oligo_dir:
+                    rep_idx = 0 if '800x' in oligo_dir else 1
+                    nr_rep, pa_rep, nn_rep  = readSummaryToProfile(oligo_dir + '/' + oligo_filename, p1_reps[rep_idx], oligoid=oligo_id, remove_long_indels=remove_long_indels, remove_wt = remove_wt, wt_thresh=wt_thresh)
+                if selected_overbeek_id is not None: 
                     fetchRepresentativeCleanReads(oligo_dir + '/' + read_filename, rep_reads1, oligoid=oligo_id)
+                    if 'DPI7' in oligo_dir:
+                        fetchRepresentativeCleanReads(oligo_dir + '/' + read_filename, rr_reps[rep_idx], oligoid=oligo_id)
                     if pam_loc1 is None:
                         pam_loc1, pam_dir1 = getNullTargetPamDetails(getHighDataDir()+ '/' + null_oligo_dir + '/' + exptarget_filename, oligoid=oligo_id )
                 if is_old: nreads_old += numread1; nnull_old += num_null1
@@ -155,7 +166,7 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
             all_overbeek_profiles.append(o1)
             all_our_profiles.append(p1)
             sel_overbeek_ids.append(overbeek_id[8:])
-            if above30_percentages[-1] < 20.0:
+            if above30_percentages[-1] < 50.0:
                 oif, oof, _ = fetchIndelSizeCounts(o1)
                 pif, pof, _ = fetchIndelSizeCounts(p1)
                 overbeek_inframes.append(oif*100.0/(oif+oof))
@@ -177,15 +188,15 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
 
         if selected_overbeek_id is not None:
             title = '%s (KL=%.1f)' % (overbeek_id, kls[-1])
-            labels =  ['Synthetic Profile Rep A', 'Synthetic Profile  Rep B', 'Endogenous Profile']
-            plotProfiles([p1_old,p1_new, o1], [rep_reads1,rep_reads1,rep_reads2], [pam_loc1,pam_loc1,pam_loc2],[x=='REVERSE' for x in [pam_dir1, pam_dir1, pam_dir2]],labels, title=title)
-               
+            labels =  ['Conventional scaffold Rep A', 'Conventional scaffold  Rep B','Improved scaffold Rep A', 'Improved scaffold  Rep B', 'Endogenous Profile']
+            plotProfiles([p1_old_reps[0],p1_old_reps[1],p1_new_reps[0],p1_new_reps[0], o1], [rr_old_reps[0],rr_old_reps[1],rr_new_reps[0],rr_new_reps[1],rep_reads2], [pam_loc1,pam_loc1,pam_loc1,pam_loc1,pam_loc2],[x=='REVERSE' for x in [pam_dir1, pam_dir1, pam_dir1,pam_dir1,pam_dir2]],labels, title=title)
+
     if selected_overbeek_id is None:
 
         plotInFrame(overbeek_inframes, ours_inframes, oof_sel_overbeek_ids, pred_results_dir)
           
         i = 1
-        PL.figure(figsize=(6,4))
+        PL.figure(figsize=(5.5,5))
         for thr_l, thr_h in [(0.0,10.0), (10.0,20.0), (20.0,50.0), (50.0,90.0), (90.0,100.0)]:
             ydata = [kl for (kl,a30,id,reads) in zip(kls, above30_percentages, overbeek_ids, log_reads ) if a30 > thr_l and a30 <= thr_h]
             xdata = [reads for (kl,a30,id,reads) in zip(kls, above30_percentages, overbeek_ids, log_reads ) if a30 > thr_l and a30 <= thr_h]
@@ -195,9 +206,12 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
                 if y > 3 and x > 2: 
                     PL.text(x,y,id)
         PL.legend()
-        PL.ylabel('KL')
-        PL.xlabel('Log10 Mutated Reads')
+        PL.plot([0,6],[0.77,0.77],'--', color='grey')
+        PL.text(0.1,0.5,'Median between our replicates', color='grey')
+        PL.ylabel('Symmetric KL Divergence',fontsize=12)
+        PL.xlabel('Log10 Mutated Reads',fontsize=12)
         PL.xlim((0,5.5))
+        PL.ylim((0,8))
         PL.show(block=False)
         saveFig('scatter_KL')
         i += 1
@@ -225,8 +239,8 @@ def compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir = '../in
 
 if __name__ == '__main__':
 
-    setHighDataDir('/data/endogenous_comparisons')
-    setPlotDir('/results/plots')
+    setHighDataDir('.')
+    setPlotDir('plots')
     setFigType('png')
-    compareOverbeekProfiles(selected_overbeek_id='Overbeek16', pred_results_dir='/data/endogenous_comparisons')
-    compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir='/data/endogenous_comparisons')
+    compareOverbeekProfiles(selected_overbeek_id='Overbeek16', pred_results_dir='.')
+    compareOverbeekProfiles(selected_overbeek_id=None, pred_results_dir='.')

@@ -52,12 +52,12 @@ def plotPercScatterAnalysis(data, label='test', y_axis = 'Percent Non-Null Reads
         regr_lines[mh_len] = (x_pts,[regr.predict(x)[0] for x in x_pts],corr[0])
         
         if plot_scatters and mh_len in scatter_mh_lens:
-            fig = PL.figure(figsize=(6,6))
+            fig = PL.figure(figsize=(5,5))
             PL.plot( mh_data['MH Dist'], mh_data[y_axis], '.', alpha=0.4 )
-            PL.plot(regr_lines[mh_len][0],regr_lines[mh_len][1],'r',linewidth=2)
+            PL.plot(regr_lines[mh_len][0],regr_lines[mh_len][1],'dodgerblue',linewidth=3)
         
-            PL.xlabel('Distance between nearest ends of microhomologous sequences',fontsize=14)
-            PL.ylabel('Microhomology-mediated deletion\nas percent mutated reads',fontsize=14)
+            PL.xlabel('Distance between nearest ends of\nmicrohomologous sequences',fontsize=14)
+            PL.ylabel('Percent of mutated reads of corresponding\nMH-mediated deletion',fontsize=14)
             PL.tick_params(labelsize=14)
             PL.xlim((0,20))
             PL.title('Microhomology of length %d (r=%.2f)' % (mh_len,corr[0]),fontsize=14)
@@ -74,8 +74,9 @@ def plotPercScatterAnalysis(data, label='test', y_axis = 'Percent Non-Null Reads
             lsty = '--' if mh_len < 9 else '-'
             PL.plot(fit_data[0], fit_data[1], linewidth=2, linestyle=lsty, label='MH length %d (R=%.1f)' % (mh_len, fit_data[2]))
         PL.title(label,fontsize=18)
-        PL.xlabel('Distance between MH sequences',fontsize=18)
-        PL.ylabel('Expected deletion as %s' % y_axis,fontsize=18)
+        PL.xlabel('Distance between nearest ends of\nmicrohomologous sequences',fontsize=14)
+        PL.ylabel('Percent of mutated reads of corresponding\nMH-mediated deletion',fontsize=14)
+          
         PL.tick_params(labelsize=18)
         PL.legend()
         PL.ylim((0,100))
@@ -101,7 +102,7 @@ def compareMHlines(all_result_outputs, label='', y_axis = 'Percent Non-Null Read
         for dirname, regr_line,lysty,clr in zip(dirnames,regr_lines,lystys, clrs):
             PL.plot(regr_line[0], regr_line[1], label='%s (R=%.1f)' % (getSimpleName(dirname), regr_line[2]), linewidth=2, color=clr, linestyle=lysty, alpha=0.5 )
         PL.xlabel('Distance between nearest ends of microhomologous sequences',fontsize=14)
-        PL.ylabel('Correspondng microhomology-mediated deletion\n as percent of total mutated reads',fontsize=14)
+        PL.ylabel('Corresponding microhomology-mediated deletion\n as percent of total mutated reads',fontsize=14)
         PL.tick_params(labelsize=16)
         PL.legend(loc='upper right')
         PL.ylim((0,70))

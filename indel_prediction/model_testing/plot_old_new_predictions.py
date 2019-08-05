@@ -11,13 +11,15 @@ from selftarget.data import getHighDataDir, setHighDataDir
 
 def renameCol(colname):
     replace_terms = [('Old v New','Between Library'),('Old v Predicted','Predicted Vs Add. Lib'),('New v Predicted','Predicted vs Main Lib'),('Comb v Predicted','Predicted vs Combined Libs'),('Class KL',''), ('KL','')]
-    replace_terms = [('Old', 'Replicate A'),('New', 'Replicate B'),('Combined', 'Combined Replicates'),('In Frame Perc', 'Percent In Frame Mutations'),('KL', '')]
+    replace_terms = [('Old', 'Conventional Scaffold'),('New', 'Improved Scaffold'),('Combined', 'Combined Replicates'),('In Frame Perc', 'Percent In Frame Mutations'),('KL', '')]
+    replace_terms = [('New 1600x', 'Replicate B'),('New 2x800x', 'Replicate A')]
     for term1, term2 in replace_terms:
          colname = colname.replace(term1, term2)
     return colname.strip()
 
 def plotKLBoxes(data):
-    cols = [x for x in data.columns if 'KL' in x and 'Class KL' not in x]
+    cols = [x for x in data.columns if 'KL' in x and 'Class KL' not in x and 'Old' not in x and 'Conventional' not in x and 'Combined' not in x]
+    cols.reverse()
     cols_label, max_kl = 'KL', 9
     PL.figure(figsize=(4,5))
 
@@ -35,16 +37,25 @@ def plotKLBoxes(data):
 
 def plotInFrameCorr(data):
     
-    for label1, label2 in [('Combined in Frame Perc', 'Predicted In Frame Per')]:
-        PL.figure(figsize=(4,4))
-        xdata, ydata = data[label1], data[label2]
-        PL.plot(xdata,ydata, '.')
-        PL.plot([0,100],[0,100],'k--')
-        PL.title('R=%.3f' % (pearsonr(xdata, ydata)[0]))
-        PL.xlabel(renameCol(label1))
-        PL.ylabel(renameCol(label2))
-        PL.show(block=False)
-        saveFig('in_frame_corr_%s_%s' % (label1.replace(' ','_'),label2.replace(' ','_')))
+    shi_data = pd.read_csv(getHighDataDir() + '/shi_deepseq_frame_shifts.txt',sep='\t')
+
+    label1, label2 = 'New In Frame Perc', 'Predicted In Frame Per'
+    PL.figure(figsize=(4,4))
+
+    xdata, ydata = data[label1], data[label2]
+    PL.plot(xdata,ydata, '.',alpha=0.15)
+    PL.plot(shi_data['Measured Frame Shift'], shi_data['Predicted Frame Shift'], '^', color='orange')
+    for x,y,id in zip(shi_data['Measured Frame Shift'], shi_data['Predicted Frame Shift'],shi_data['ID']):
+        if x-y > 10:
+            PL.text(x,y,id.split('/')[1][:-21])
+    PL.plot([0,100],[0,100],'k--')
+    PL.title('R=%.3f' % (pearsonr(xdata, ydata)[0]))
+    PL.xlabel('percent in frame mutations (measured)')
+    PL.ylabel('percent in frame mutations (predicted)')
+    PL.ylim((0,80))
+    PL.xlim((0,80))
+    PL.show(block=False)
+    saveFig('in_frame_corr_%s_%s' % (label1.replace(' ','_'),label2.replace(' ','_')))
 
 def runAnalysis():
     data = pd.read_csv(getHighDataDir() + '/old_new_kl_predicted_summaries.txt', sep='\t').fillna(-1.0)

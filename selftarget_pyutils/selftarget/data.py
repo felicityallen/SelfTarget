@@ -87,14 +87,14 @@ def getPamLocFile():
 
 def parseSampleName(a_dirname):
     dirname = a_dirname[:-8] + 'DPI16_may' if 'K562_800x_7A_DPI7_may' in a_dirname else a_dirname
-    toks = dirname.split('_')
+    toks = dirname.split('_') if '_' in dirname else dirname.split('-')
     dpi = eval([x for x in toks if 'DPI' in x][0][3:]) if 'DPI' in dirname else 0
     date = toks[1] if toks[1] in ['Feb','June','April'] else toks[1]
     cov = ''
     for x in ['1600x','800x','500x','1600X']: 
         if x in dirname: cov = x
     cellline = ''
-    for x in ['K562','RPE1','CAS9','eCAS9','WT','TREX2','2A_TREX2','HAP1','E14TG2A','CHO','BOB']: 
+    for x in ['K562','RPE1','CAS9','eCAS9','WT','TREX2','2A_TREX2','HAP1','E14TG2A','CHO','BOB', 'SIM']: 
         if x in dirname: cellline = x
     if cellline == 'CAS9': cellline = 'K562'
     if cellline == '2A_TREX2': cellline = 'TREX2_2A'
@@ -104,7 +104,7 @@ def parseSampleName(a_dirname):
     for i,x in enumerate(['may','dec']):
         if x in dirname: month = str(i)+x
     virus = ''
-    for x in ['12NA','12NB','7A','7B','6OA','6OB','12OA']:
+    for x in ['12NA','12NB','7A','7B','6OA','6OB','12OA','12OB']:
         if x in dirname: virus = x
     return cellline, dpi, virus, cov, date, month, a_dirname
 
@@ -137,19 +137,21 @@ def createResultDirectory(outdir, subdir, with_subdir = False):
         if not os.path.isdir(full_outdir): os.mkdir(full_outdir)
     return full_outdir
 
-def getSimpleName(dirname):
+def getSimpleName(dirname, include_dpi=False):
     cellline, dpi, virus, cov, date, month, a_dirname = parseSampleName(dirname)
     if cellline == 'BOB': cellline = 'Human iPSC'
     if 'E14' in cellline: cellline = 'Mouse ESC'
-    rep = 'C' if '_CAS9' in dirname else ('A' if 'A' in virus else 'B')
-    return cellline + ' Rep ' + rep
+    rep = 'D' if 'K562_1600x' in dirname else 'C' if '_CAS9' in dirname else ('A' if 'A' in virus else 'B')
+    out = cellline + ' Rep ' + rep
+    if include_dpi: out += ' DPI %d' % dpi 
+    return out
 
 def getSampleSelectors(include_wt = False):
 
     one_sel = lambda x: 'ST_Feb_2018_CAS9_12NA_1600X_DPI7' in x
     test_sel = lambda x: parseSampleName(x)[0] == 'K562' and not isOldLib(x) and 'DPI7' in x and ('_may' not in x and '1600x' not in x)
     test_exp = lambda x: 'CHO' in x or 'BOB' in x
-    good_sel = lambda x: not (('RPE' in x and '7A' in x) or ('RPE' in x and 'dec' not in x) or ('DPI16' in x) or ('K562_800x_7A_DPI7_may' in x) or ('DPI7' in x and 'K562' in x and '1600' in x) or ('CAS9' in x and '1600' in x and 'DPI3' in x) or ('WT' in x and 'DPI20' in x) or ('2A_TREX' in x and '12NB' in x and 'DPI3' in x))
+    good_sel = lambda x: not (('RPE' in x and '7A' in x) or ('RPE' in x and 'dec' not in x) or ('DPI16' in x) or ('K562_800x_7A_DPI7_may' in x) or ('DPI7' in x and 'K562' in x and '1600' in x and '7B' in x) or ('CAS9' in x and '1600' in x and 'DPI3' in x) or ('WT' in x and 'DPI20' in x) or ('2A_TREX' in x and '12NB' in x and 'DPI3' in x))
     all_sel = lambda x: ('NULL' not in x or include_wt) and ('WT' not in x or include_wt) and good_sel(x)
     old_sel = lambda x: isOldLib(x) and all_sel(x)
     new_sel = lambda x: not isOldLib(x) and all_sel(x)
@@ -166,7 +168,10 @@ def getSampleSelectors(include_wt = False):
             'Old Scaffold': old_sel, 
             'K562_All_TP':tp_sel, 
             'New Scaffold': new_sel,
-            'K562 TREX': k562_trex_new}
+            'K562 TREX': k562_trex_new,
+			'All': all_sel,
+            'Concat New': lambda x: 'data_' in x and 'N' in x,
+            'Concat Old': lambda x: 'data_' in x and 'O' in x}
 
 
 
