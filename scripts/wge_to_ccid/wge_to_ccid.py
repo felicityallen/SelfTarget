@@ -3,6 +3,8 @@ import argparse
 import csv
 import logging
 import os
+import subprocess
+import re
 import sys
 import traceback
 from itertools import chain
@@ -69,7 +71,7 @@ class WGE(Document):
     @classmethod
     def create_from_crispr(cls, wge_id, crispr):
         filename = strip_filesystem_specific_prefix(ROOT_PATH, crispr.filename)
-        cls(wge_id=str(wge_id), oligo_id=crispr.oligo_id, filename=filename, species=crispr.species)
+        return cls(wge_id=str(wge_id), oligo_id=crispr.oligo_id, filename=filename, species=crispr.species)
 
 
 class Parser:
@@ -100,8 +102,10 @@ class Crispr:
         self.validate_entry()
         if mode == API:
             wge = self.match_wge_id_from_api()
-        elif mode == Analyser:
+        elif mode == ANALYSER:
             wge = self.match_wge_id_from_analyser(wge_dict)
+        else:
+            raise ValueError("Unknown mode")
         return wge
 
     def extract_and_save_wge(self, mode=str, wge_dict=None) -> int:
@@ -137,24 +141,34 @@ class Crispr:
 
 class Analyser:
 
-    @staticmethod
-    def run_analyser(samples_file: str, species, result_filename=None):
+    def __init__(self, samples_file, species, result_filename=None):
         analyser_path = os.getenv("CRISPR_ANALYSER", "crispr_analyser")
         assert os.path.exists(samples_file), samples_file
         assert os.path.exists(analyser_path), analyser_path
         index_file = INDEXES[species]
         assert os.path.exists(index_file), index_file
-        import subprocess
         if not result_filename:
             result_filename = get_base_name(samples_file) + "_wges.txt"
+
+        self.samples_file = samples_file
+        self.result_filename = result_filename
+        self.analyser_path = analyser_path
+        self.index_file = index_file
+
+    def run_search_command_line(self):
+        command = " ".join([f"{self.analyser_path}", "search", "-i", self.index_file,
+                   "-f", os.path.abspath(self.samples_file), ">", os.path.abspath(self.result_filename)])
+        logger.info("Command: " + command)
+        subprocess.check_output(command,
+                                stderr=subprocess.STDOUT,
+                                shell=True)
+
+    def generate_wge_ids_file(self):
         try:
-            subprocess.check_output([f"{analyser_path}", "search", "-i", index_file,
-                                     "-f", os.path.abspath(samples_file), ">", os.path.abspath(result_filename)],
-                                    stderr=subprocess.STDOUT,
-                                    shell=True)
+            self.run_search_command_line()
         except subprocess.CalledProcessError as e:
             print(e.output)
-        return result_filename
+        return self.result_filename
 
     @staticmethod
     def check_no_more_than_two_wge_ids_found(wge_dict: Wge_dict):
@@ -162,14 +176,16 @@ class Analyser:
 
     @staticmethod
     def extract_wge_ids(line: str, wge_dict: Wge_dict, current_seq: str):
-        line = line.strip("\n")
-        if CrisprLine(line).is_sequence():
+        line = line.strip("\n:")
+        if CrisprLine.is_sequence(line):
             current_seq = line
             wge_dict[line] = []
         elif line.startswith("\t"):
             wge_dict[current_seq].append(int(line.strip("\t")))
+        elif line == "":
+            pass
         else:
-            raise ValueError("Bad wge results file error)")
+            raise ValueError(f"Bad wge results file error, line is: {re.escape(line)}")
         return current_seq
 
     @classmethod
@@ -180,6 +196,7 @@ class Analyser:
             for line in f:
                 current_seq = cls.extract_wge_ids(line, wge_dict, current_seq)
         cls.check_no_more_than_two_wge_ids_found(wge_dict)
+        return wge_dict
 
 
 class CrisprLine:
@@ -190,8 +207,10 @@ class CrisprLine:
     def is_crispr_line(self):
         return self.line[0][:3] == '@@@'
 
-    def is_sequence(self):
-        return set(self.line).issubset({"A", "C", "D", "G"})
+    @staticmethod
+    def is_sequence(line):
+        line_characters = set(line)
+        return line_characters and line_characters.issubset({"A", "C", "T", "G"})
 
     def get_sequence_info(self):
         s = self.line[0].split()
@@ -270,17 +289,19 @@ class RepReadsFile:
                     crispr = self.create_crispr_from_seq_line(line)
                     crispr.extract_and_save_wge(ANALYSER, wges_dict)
 
-    def map_ids_from_analyzer(self):
-        seqs_filename = self.dump_seqs_into_txt()
-        wges_filename = Analyser.run_analyser(seqs_filename, self.species)
-        wges_dict = Analyser.get_wges_dict(wges_filename)
+    def map_ids_from_analyzer(self, wges_file=None):
+        if not wges_file:
+            seqs_filename = self.dump_seqs_into_txt()
+            analyser = Analyser(seqs_filename, self.species)
+            wges_file = analyser.generate_wge_ids_file()
+        wges_dict = Analyser.get_wges_dict(wges_file)
         self.parse_analyser_report(wges_dict)
 
-    def map_ids(self, mode: str):
+    def map_ids(self, mode: str, wge_file=None):
         if mode == API:
             self.map_ids_from_api()
         elif mode == ANALYSER:
-            self.map_ids_from_analyzer()
+            self.map_ids_from_analyzer(wge_file)
         else:
             raise ValueError(f"Unknown WGE extraction mode: {mode}")
 
@@ -290,14 +311,14 @@ class WgeToCCIDCLmanager:
     def __init__(self, args):
         self.args = args
 
-    def process_single_file_mapping(self, args):
-        repreads = RepReadsFile(args.file)
-        if args.mode:
-            repreads.map_ids(args.mode)
+    def process_single_file_mapping(self):
+        repreads = RepReadsFile(self.args.file)
+        if self.args.mode:
+            repreads.map_ids(self.args.mode, getattr(self.args, "wge"))
 
     def process_map_command(self):
         if self.args.file:
-            self.process_single_file_mapping(self.args)
+            self.process_single_file_mapping()
 
     def process_dump_command(self):
         repreads = RepReadsFile(self.args.file)
@@ -342,6 +363,7 @@ def main():
     parser_map.add_argument('-f', '--file', type=str, help='Map oligo ids from a single file')
     parser_map.add_argument('-m', '--mode', type=str, default=ANALYSER,
                             help="Mode of mapping: either through WGE API or with CRISPR analyzer")
+    parser_map.add_argument("-w", '--wge', type=str, help="File with sequences and corresponding WGE ids")
     parser_dump = subparsers.add_parser(DUMP,
                                         help="Dump from a file into a txt file")
     parser_dump.add_argument("file", type=str, help="The file that contains crisprs to dump")
