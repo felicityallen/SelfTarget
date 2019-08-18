@@ -13,7 +13,7 @@ from typing import Dict, List
 import requests
 from mongoengine import *
 
-from scripts.wge_to_ccid.helper import check_if_abs, strip_filesystem_specific_prefix, get_base_name
+from scripts.wge_to_ccid.helper import check_if_abs, get_file_name_without_extension
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,6 +41,7 @@ HUMAN_INDEX = os.getenv("HUMAN_INDEX",
                         "/lustre/scratch117/cellgen/cellgeni/cellgeni_su/crispr_indexes/GRCh38_index.bin")
 MOUSE_INDEX = os.getenv("MOUSE_INDEX",
                         "/lustre/scratch117/cellgen/cellgeni/cellgeni_su/crispr_indexes/GRCm38_index.bin")
+FILENAME_MAP = os.getenv("FILENAME_MAP", "file_map.txt")
 INDEXES = {
     HUMAN: HUMAN_INDEX,
     MOUSE: MOUSE_INDEX
@@ -62,19 +63,8 @@ class NoWGEException(Exception):
         return f"Error - no WGE found for seq {self.species} {self.seq}"
 
 
-class WGE(Document):
-    wge_id = StringField(required=True, max_length=50, unique=True)
-    oligo_id = StringField(max_length=50)
-    filename = StringField(required=True, max_length=500)
-    species = StringField(required=True, choices=[HUMAN, MOUSE], max_length=6)
-
-    @classmethod
-    def create_from_crispr(cls, wge_id, crispr):
-        filename = strip_filesystem_specific_prefix(ROOT_PATH, crispr.filename)
-        return cls(wge_id=str(wge_id), oligo_id=crispr.oligo_id, filename=filename, species=crispr.species)
-
-
 class Parser:
+    # TODO: refactor parsing from API and from the analyser into two different classes
     pass
 
 
@@ -86,14 +76,47 @@ class AnalyserParser(Parser):
     pass
 
 
+class FarmFileMap:
+
+    """
+    Acts upon a file with a format
+    original_filename target_filename_that_was_used_for_bsub_submission
+
+    Example:
+    /lustre/scratch117/cellgen/team227/FORECasT_profiles_for_AK/human/CCDS0-499/CCDS430.1_RRAGC_predicted_rep_reads.txt /lustre/scratch117/cellgen/cellgeni/forecast/input.345
+    """
+
+    def __init__(self, filename):
+        self.filemap = self._process_file_map(filename)
+
+    @staticmethod
+    def _process_file_map(filename) -> Dict[str, str]:
+        filemap = {}
+        with open(filename) as f:
+            for line in f:
+                original_file, farm_input_file = line.strip("\n").split(" ")
+                filemap[farm_input_file] = original_file
+        return filemap
+
+    def get_database_filename(self, farm_input_filename) -> str:
+        original_filename = self.filemap.get(farm_input_filename, "")
+        database_name = original_filename.replace(ROOT_PATH, "")
+        if database_name:
+            logger.info(f"Database name: {database_name}")
+        else:
+            logger.error(f"Original filename not found for file: {farm_input_filename}")
+        return database_name
+
+
 class Crispr:
 
-    def __init__(self, strand, species, seq, oligo_id, filename):
+    def __init__(self, strand, species, seq, oligo_id, filename, database_filename):
         self.strand = strand
         self.species = species
         self.seq = seq
         self.oligo_id = oligo_id
         self.filename = filename
+        self.database_filename = database_filename
 
     def validate_entry(self) -> None:
         assert self.strand in {'-', '+'}
@@ -111,7 +134,9 @@ class Crispr:
     def extract_and_save_wge(self, mode=str, wge_dict=None) -> int:
         wge = self.extract_wge(mode, wge_dict)
         logger.info(f"WGE: {wge}")
-        WGE.create_from_crispr(wge, self).save()
+        wge2ccid = WGE.create_from_crispr(wge, self)
+        wge2ccid.filename = self.database_filename
+        wge2ccid.save()
         return wge
 
     def select_between_two_wge_ids(self, wge_ids):
@@ -139,6 +164,17 @@ class Crispr:
         return self.get_wge_id_from_list(wge_json)
 
 
+class WGE(Document):
+    wge_id = StringField(required=True, max_length=50, unique=True)
+    oligo_id = StringField(max_length=50)
+    filename = StringField(required=True, max_length=500)
+    species = StringField(required=True, choices=[HUMAN, MOUSE], max_length=6)
+
+    @classmethod
+    def create_from_crispr(cls, wge_id, crispr: Crispr):
+        return cls(wge_id=str(wge_id), oligo_id=crispr.oligo_id, filename=crispr.filename, species=crispr.species)
+
+
 class Analyser:
 
     def __init__(self, samples_file, species, result_filename=None):
@@ -148,7 +184,7 @@ class Analyser:
         index_file = INDEXES[species]
         assert os.path.exists(index_file), index_file
         if not result_filename:
-            result_filename = get_base_name(samples_file) + "_wges.txt"
+            result_filename = get_file_name_without_extension(samples_file) + "_wges.txt"
 
         self.samples_file = samples_file
         self.result_filename = result_filename
@@ -222,9 +258,10 @@ class CrisprLine:
 
 class RepReadsFile:
 
-    def __init__(self, filename):
+    def __init__(self, filename, farm_file_map: FarmFileMap):
 
         self.filename = self.validate_file(filename)
+        self.database_filename = farm_file_map.get_database_filename(os.path.abspath(self.filename))
         self.species = MOUSE if MOUSE in filename else HUMAN
 
     @staticmethod
@@ -245,7 +282,7 @@ class RepReadsFile:
 
     def create_crispr_from_seq_line(self, line: CrisprLine) -> Crispr:
         oligo_id, strand, seq = line.get_sequence_info()
-        return Crispr(strand, self.species, seq, oligo_id, self.filename)
+        return Crispr(strand, self.species, seq, oligo_id, self.filename, self.database_filename)
 
     def map_ids_from_line(self, line):
         if line.is_crispr_line():
@@ -269,7 +306,7 @@ class RepReadsFile:
                     self.map_ids_from_line(line)
 
     def dump_seqs_into_txt(self):
-        target_filename = get_base_name(self.filename) + "_seqs.txt"
+        target_filename = get_file_name_without_extension(self.filename) + "_seqs.txt"
         with open(self.filename) as f:
             with open(target_filename, 'w') as seqs_file:
                 reader = csv.reader(f, delimiter='\t')
@@ -306,23 +343,22 @@ class RepReadsFile:
             raise ValueError(f"Unknown WGE extraction mode: {mode}")
 
 
-class WgeToCCIDCLmanager:
+class WgeToCCIDCLManager:
 
     def __init__(self, args):
         self.args = args
+        self.repreads = RepReadsFile(self.args.file, FarmFileMap(FILENAME_MAP))
 
     def process_single_file_mapping(self):
-        repreads = RepReadsFile(self.args.file)
         if self.args.mode:
-            repreads.map_ids(self.args.mode, getattr(self.args, "wge"))
+            self.repreads.map_ids(self.args.mode, getattr(self.args, "wge"))
 
     def process_map_command(self):
         if self.args.file:
             self.process_single_file_mapping()
 
     def process_dump_command(self):
-        repreads = RepReadsFile(self.args.file)
-        repreads.dump_seqs_into_txt()
+        self.repreads.dump_seqs_into_txt()
 
     def count_oligo_ids(self):
         skip_directories = {}
@@ -333,12 +369,12 @@ class WgeToCCIDCLmanager:
             if "CCDS" in d and not d.endswith(".zip") and not d in skip_directories:
                 for f in os.listdir(d):
                     if f.endswith("reads.txt"):
+                        # TODO: investigate why it's not used
                         filename = os.path.join(d, f)
-                        repreads = RepReadsFile(filename)
-                        logger.info(repreads.filename)
+                        logger.info(self.repreads.filename)
                     try:
-                        oligo_ids = repreads.count_oligo_ids_in_a_file()
-                        logger.info(f"{filename}, oligo ids: {oligo_ids}")
+                        oligo_ids = self.repreads.count_oligo_ids_in_a_file()
+                        logger.info(f"{self.filename}, oligo ids: {oligo_ids}")
                         total_oligo_ids += oligo_ids
                     except Exception as e:
                         traceback.print_exc()
@@ -368,7 +404,7 @@ def main():
                                         help="Dump from a file into a txt file")
     parser_dump.add_argument("file", type=str, help="The file that contains crisprs to dump")
     args = parser.parse_args()
-    manager = WgeToCCIDCLmanager(args)
+    manager = WgeToCCIDCLManager(args)
     manager.process()
 
 

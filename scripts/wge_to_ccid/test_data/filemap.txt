@@ -1,0 +1,3 @@
+/lustre/scratch117/cellgen/team227/FORECasT_profiles_for_AK/human/CCDS0-499/CCDS100.2_GPR157_predicted_rep_reads.txt /lustre/scratch117/cellgen/cellgeni/forecast/input.1
+/lustre/scratch117/cellgen/team227/FORECasT_profiles_for_AK/human/CCDS0-499/CCDS101.1_H6PD_predicted_rep_reads.txt /lustre/scratch117/cellgen/cellgeni/forecast/input.2
+/lustre/scratch117/cellgen/team227/FORECasT_profiles_for_AK/human/CCDS0-499/CCDS10.1_TNFRSF18_predicted_rep_reads.txt /lustre/scratch117/cellgen/cellgeni/forecast/input.3

@@ -52,13 +52,14 @@ def get_obj_by_id(id, species):
     if wge:
         objects = WGE.objects(wge_id=id, species=species)
     else:
+        # TODO: fix oligo_ids, in this form it won't work
         objects = WGE.objects(oligo_id=id, species=species)
     if len(objects) > 1:
         raise MultipleObjectsReturned()
     elif len(objects) == 0:
         raise NoWGEException(species, id)
     obj = objects[0]
-    obj['filename'] = obj['filename'].replace(DB_FILEPATH_BASE, S3_BASE)
+    obj['filename'] = os.path.join(S3_BASE, obj['filename'])
     return obj
 
 
