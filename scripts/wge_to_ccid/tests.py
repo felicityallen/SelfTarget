@@ -1,13 +1,15 @@
-from scripts.wge_to_ccid.helper import get_file_name_without_extension
-from .wge_to_ccid import CrisprLine, FarmFileMap, Crispr, HUMAN, APIParser
+from scripts.wge_to_ccid.constants import HUMAN
+from scripts.wge_to_ccid.crispr import CrisprLine, Crispr
+from scripts.wge_to_ccid.helper import get_file_name_without_extension, is_sequence
+from .wge_to_ccid import FarmFileMap
 
 
 def test_is_seq():
-    assert CrisprLine.is_sequence("ATCTTCAGTCTCTGGAATTG")
-    assert CrisprLine.is_sequence("A")
-    assert not CrisprLine.is_sequence("ATCTTCAGTCTCTGGAATTG:")
-    assert not CrisprLine.is_sequence("ATCTTCAGKCTCTGGAATTG")
-    assert not CrisprLine.is_sequence("")
+    assert is_sequence("ATCTTCAGTCTCTGGAATTG")
+    assert is_sequence("A")
+    assert not is_sequence("ATCTTCAGTCTCTGGAATTG:")
+    assert not is_sequence("ATCTTCAGKCTCTGGAATTG")
+    assert not is_sequence("")
 
 
 def test_filemap():

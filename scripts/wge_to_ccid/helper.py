@@ -14,3 +14,8 @@ def get_file_name_without_extension(filename: str) -> str:
         if basename.endswith(ext):
             return os.path.splitext(basename)[0]
     return basename
+
+
+def is_sequence(line: str):
+    line_characters = set(line)
+    return line_characters and line_characters.issubset({"A", "C", "T", "G"})
