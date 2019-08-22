@@ -7,7 +7,7 @@ import traceback
 from itertools import chain
 from typing import Dict
 
-from scripts.wge_to_ccid.crispr import RepReadsFile
+from scripts.wge_to_ccid.crispr import RepReadsFile, ANALYSER
 
 logging.basicConfig(
     level=logging.INFO,

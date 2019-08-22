@@ -10,7 +10,7 @@ import requests
 from mongoengine import connect, NotUniqueError, StringField, Document
 from pymongo.errors import DuplicateKeyError
 
-from scripts.wge_to_ccid.constants import NEGATIVE, POSITIVE, SEQ_API_URL, HUMAN, MOUSE
+from scripts.wge_to_ccid.constants import NEGATIVE, POSITIVE, SEARCH_BY_SEQ_URL, HUMAN, MOUSE
 from scripts.wge_to_ccid.helper import check_if_abs, get_file_name_without_extension
 from scripts.wge_to_ccid.wge_retrievers import WGEObj, APIParser, Analyser
 
@@ -23,14 +23,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 ANALYSER = "analyser"
 API = "api"
 
 ROOT_PATH = os.getenv("ROOT_PATH", "/lustre/scratch117/cellgen/team227/FORECasT_profiles_for_AK/")
 HUMAN_PATH = os.path.join(ROOT_PATH, "human")
 MOUSE_PATH = os.path.join(ROOT_PATH, "mouse")
-
 
 WGE_POSITIVE_OFFSET = 16
 
@@ -86,7 +84,6 @@ class CrisprLine:
     @staticmethod
     def is_crispr_line(line: Crispr_line_string):
         return line[0][:3] == '@@@'
-
 
 
 class Crispr:
@@ -162,7 +159,7 @@ class Crispr:
         return self.get_wge_id_from_list(wges)
 
     def match_wge_id_from_api(self) -> str:
-        wge_json = requests.get(SEQ_API_URL,
+        wge_json = requests.get(SEARCH_BY_SEQ_URL,
                                 {"pam_right": 2, "species": self.species, "seq": self.crispr_line.get_seq}).json()
         return self.get_wge_id_from_list(wge_json)
 
@@ -177,8 +174,6 @@ class WGE(Document):
     def create_from_crispr(cls, wge_id, crispr: Crispr):
         return cls(wge_id=str(wge_id), oligo_id=crispr.crispr_line.get_oligo_id, filename=crispr.filename,
                    species=crispr.species)
-
-
 
 
 class RepReadsFile:

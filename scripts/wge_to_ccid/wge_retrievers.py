@@ -8,7 +8,7 @@ from typing import Dict, List
 
 import requests
 
-from scripts.wge_to_ccid.constants import WGE_API_URL, HUMAN, MOUSE, NEGATIVE, POSITIVE
+from scripts.wge_to_ccid.constants import CRISPR_BY_ID_URL, HUMAN, MOUSE, NEGATIVE, POSITIVE
 from scripts.wge_to_ccid.helper import get_file_name_without_extension, is_sequence
 
 logging.basicConfig(
@@ -65,7 +65,7 @@ class APIParser(Parser):
 
     @staticmethod
     def get_wge_info(wge_id, species) -> WGEObj:
-        r = requests.get(WGE_API_URL, {"species": species, "id": wge_id})
+        r = requests.get(CRISPR_BY_ID_URL, {"species": species, "id": wge_id})
         wge = WGEObj(r.json())
         return wge
 
@@ -90,13 +90,17 @@ class Analyser:
         self.analyser_path = analyser_path
         self.index_file = index_file
 
-    def _run_search_command_line(self):
-        command = " ".join([f"{self.analyser_path}", "search", "-i", self.index_file,
-                            "-f", os.path.abspath(self.samples_file), ">", os.path.abspath(self.result_filename)])
+    @staticmethod
+    def _run_command(command):
         logger.info("Command: " + command)
         subprocess.check_output(command,
                                 stderr=subprocess.STDOUT,
                                 shell=True)
+
+    def _run_search_command_line(self):
+        command = " ".join([f"{self.analyser_path}", "search", "-i", self.index_file,
+                            "-f", os.path.abspath(self.samples_file), ">", os.path.abspath(self.result_filename)])
+        self._run_command(command)
 
     def _generate_wge_ids_file(self):
         try:
