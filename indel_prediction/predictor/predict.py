@@ -9,7 +9,7 @@ from predictor.features import calculateFeaturesForGenIndelFile, readFeaturesDat
 from predictor.model import computePredictedProfile, readTheta
 from selftarget.indel import tokFullIndel
 from selftarget.plot import setFigType
-from selftarget.profile import fetchIndelSizeCounts, getProfileCounts, fetchReads
+from selftarget.profile import fetchIndelSizeCounts, getProfileCounts, fetchReads, FRAME_SHIFT
 from selftarget.view import plotProfiles
 
 INDELGENTARGET_EXE = os.getenv("INDELGENTARGET_EXE", "C:/Users/fa9/postdoc/indelmap/build/Release/indelgentarget.exe")
@@ -80,7 +80,7 @@ def build_plot_by_profile(filename, profile, oligo_id):
     rep_reads = {}
     fetchReads(filename, rep_reads, oligo_id)
     setFigType('png')
-    fig = plotProfiles([profile], [rep_reads], [43], [False], ['Predicted'])
+    fig = plotProfiles([profile], [rep_reads], [43], [False], ['Predicted'], title='In Frame: %.1f%%' % rep_reads[FRAME_SHIFT])
     return fig
 
 
@@ -146,9 +146,9 @@ def predictMutationsBulk(target_file, out_prefix, theta_file = DEFAULT_MODEL):
     print('Writing to file...')
     writeProfilesToFile(out_prefix, profiles_and_rr, write_rr=True)
     print('Done!')    
- 
-if __name__ == '__main__':
-      
+
+
+def main():
     theta_file = DEFAULT_MODEL
     target_seq = 'CTGAGTAGCTATGCGGCCAGCAGCGAGACGCTCAGCGTGAAGCGGCAGTATCCCTCTTTCCTGCGCACCATCCCCAATC'
     pam_idx = 42
@@ -156,3 +156,7 @@ if __name__ == '__main__':
     plotProfiles([profile],[rep_reads],[pam_idx],[False],['Predicted'])
 
     import pdb; pdb.set_trace()
+
+
+if __name__ == '__main__':
+    main()

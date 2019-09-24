@@ -2,6 +2,7 @@ import http
 import logging
 import os
 import tempfile
+from urllib.parse import urljoin
 
 import mpld3
 import requests
@@ -9,7 +10,7 @@ from flask import Flask, request, jsonify, send_file
 from indel_prediction.predictor.predict import plot_predictions
 from mongoengine import connect, Document, StringField, MultipleObjectsReturned
 from predictor.predict import build_plot_by_profile
-from selftarget.profile import readSummaryToProfile
+from selftarget.profile import readSummaryToProfile, get_guide_info_from_oligo_id, CrisprLine
 from werkzeug.exceptions import BadRequest
 
 app = Flask(__name__)
@@ -22,6 +23,7 @@ MOUSE = "mouse"
 MONGODB_HOST = os.getenv("MONGODB_HOST")
 S3_BASE = os.getenv("S3_BASE", "https://fa9.cog.sanger.ac.uk/")
 DB_FILEPATH_BASE = os.getenv("DB_FILEPATH_BASE", "/lustre/scratch117/cellgen/team227/FORECasT_profiles_for_AK/")
+WGE_INFO_URL_BASE = "https://www.sanger.ac.uk/htgt/wge/crispr/"
 connect(host=MONGODB_HOST, connect=False)
 
 
@@ -30,6 +32,33 @@ class WGE(Document):
     oligo_id = StringField(max_length=50)
     filename = StringField(required=True, max_length=500)
     species = StringField(required=True, choices=[HUMAN, MOUSE], max_length=6)
+
+
+class Guide:
+
+    def __init__(self, wge_id, location, strand, species, gene):
+        self.wge_id = wge_id
+        self.location = location
+        self.strand = strand
+        self.species = species
+        self.gene = gene
+        self.wge_link = self._get_wge_link()
+
+    def to_dict(self):
+        return {"wge_id": self.wge_id,
+                "location": self.location,
+                "strand": self.strand,
+                "species": self.species,
+                "gene": self.gene,
+                "wge_link": self.wge_link}
+
+    def _get_wge_link(self) -> str:
+        return urljoin(WGE_INFO_URL_BASE, self.wge_id)
+
+    @classmethod
+    def create_guide(cls, wge_obj: WGE, crispr_line_info: CrisprLine):
+        return cls(wge_id=wge_obj.wge_id, gene=wge_obj.oligo_id, strand=crispr_line_info.get_strand,
+                   species=wge_obj.species, location=crispr_line_info.get_location)
 
 
 class NoWGEException(Exception):
@@ -73,9 +102,10 @@ def read_profile(obj):
                      allow_redirects=True)
     with open(profile_file, 'w') as f:
         f.write(r.text)
+    crispr_line_info = get_guide_info_from_oligo_id(profile_file, obj['oligo_id'])
     profile = {}
     readSummaryToProfile(profile_file, profile, oligoid=obj['oligo_id'], remove_wt=False)
-    return reads_file, profile_file, profile
+    return reads_file, profile_file, profile, crispr_line_info
 
 
 @app.route('/ping', methods=['GET'])
@@ -103,7 +133,8 @@ def get_profile():
     if os.path.exists(filename):
         return send_file(filename, as_attachment=True)
     else:
-        return jsonify({'error': 'Profile with those target sequence and pam index not found'}), http.HTTPStatus.BAD_REQUEST
+        return jsonify(
+            {'error': 'Profile with those target sequence and pam index not found'}), http.HTTPStatus.BAD_REQUEST
 
 
 @app.route('/plot', methods=['GET', 'POST'])
@@ -127,7 +158,8 @@ def plot():
             obj = get_obj_by_id(wge or oligoid, species)
         except NoWGEException as ex:
             return jsonify({"error": ex.msg()}), http.HTTPStatus.NOT_FOUND
-        reads_file, profile_file, profile = read_profile(obj)
+        reads_file, profile_file, profile, crispr_line_info = read_profile(obj)
+        guide = Guide.create_guide(obj, crispr_line_info)
         try:
             graph_html = mpld3.fig_to_html(build_plot_by_profile(reads_file, profile, obj['oligo_id']),
                                            template_type="simple",
@@ -136,6 +168,8 @@ def plot():
         except Exception as e:
             logging.exception("Model error")
             return jsonify({"error": str(e)}), http.HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify({"plot": graph_html,
+                        "guide": guide.to_dict()})
 
     elif request.method == 'POST':
         data = request.form or request.get_json()
@@ -152,8 +186,4 @@ def plot():
             logging.exception("Model error")
             return jsonify({"error": str(e)}), http.HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify({"plot": graph_html})
-
-
-if __name__ == "__main__":
-    app.run(port=5001)
+        return jsonify({"plot": graph_html})

@@ -1,11 +1,56 @@
-import io, os, csv, sys, re
-import numpy as np
+import csv
+import io
+import os
+from typing import List
 
-from selftarget.indel import tokFullIndel
+import numpy as np
 from selftarget.data import getWTDir
+from selftarget.indel import tokFullIndel
 from selftarget.oligo import getSummaryFileSuffix
 
-#KL Divergence between the two indel profiles (non-symmetric)
+FRAME_SHIFT = 'frame_shift'
+
+Crispr_line_string = List[str]
+
+
+class CrisprLine:
+
+    def __init__(self, line: Crispr_line_string):
+        """
+        :param line: example - ["@@@CCDS103.1_chr1_9567325_+ AAGTCACTTTTTAGAGGCTT 31.24"]
+        """
+        assert self.is_crispr_line(line)
+        s: List[str] = line[0].split()
+        self._oligo_id = s[0][3:]
+        self._seq = s[1]
+        _, self._chromosome, self._location, self._strand = self._oligo_id.split('_')
+
+    @property
+    def get_oligo_id(self):
+        return self._oligo_id
+
+    @property
+    def get_strand(self):
+        return self._strand
+
+    @property
+    def get_seq(self):
+        return self._seq
+
+    @property
+    def get_location(self):
+        return self._location
+
+    @property
+    def get_chromosome(self):
+        return int(self._chromosome.replace("chr", ""))
+
+    @staticmethod
+    def is_crispr_line(line: Crispr_line_string):
+        return line[0][:3] == '@@@'
+
+
+# KL Divergence between the two indel profiles (non-symmetric)
 def KL(p1, p2, ignore_null=True, missing_count=0.5):
     
     p1_indels = set([x for x in p1 if p1[x]>0 and (x != '-' or not ignore_null)])
@@ -284,7 +329,9 @@ def fetchReads(mapped_profile_filename, rep_reads, oligoid=None):
     f = io.open(mapped_profile_filename)
     for toks in csv.reader(f, delimiter='\t'):
         if toks[0][:3] == '@@@':
-            curr_oligo_id = toks[0][3:].split()[0]
+            curr_oligo_id, _, frame_shift = toks[0][3:].split()
+            if oligoid == curr_oligo_id:
+                rep_reads[FRAME_SHIFT] = float(frame_shift)
             continue
         if oligoid != curr_oligo_id:
             continue
@@ -294,7 +341,18 @@ def fetchReads(mapped_profile_filename, rep_reads, oligoid=None):
             rep_reads[indel] = toks[1]
 
     f.close()
-    
+
+
+def get_guide_info_from_oligo_id(profile_file, oligo_id) -> CrisprLine:
+    with open(profile_file) as f:
+        reader = csv.reader(f, delimiter='\t')
+        for toks in reader:
+            if CrisprLine.is_crispr_line(toks):
+                line = CrisprLine(toks)
+                if line.get_oligo_id == oligo_id:
+                    return line
+
+
 def fetchIndelSizeCounts(p1):
     inframe, outframe, size_counts, = 0,0,{'I':{},'D':{}}
     for i in range(1,21):
