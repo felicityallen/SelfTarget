@@ -1,7 +1,7 @@
 import csv
 import io
 import os
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 from selftarget.data import getWTDir
@@ -9,6 +9,8 @@ from selftarget.indel import tokFullIndel
 from selftarget.oligo import getSummaryFileSuffix
 
 FRAME_SHIFT = 'frame_shift'
+NEGATIVE = "-"
+POSITIVE = "+"
 
 Crispr_line_string = List[str]
 
@@ -23,11 +25,43 @@ class CrisprLine:
         s: List[str] = line[0].split()
         self._oligo_id = s[0][3:]
         self._seq = s[1]
-        _, self._chromosome, self._location, self._strand = self._oligo_id.split('_')
+        self._gene, chromosome_string, self._location, self._strand = self._oligo_id.split('_')
+        self._chromosome = self._parse_chromosome(chromosome_string)
+        self._coordinates = self._create_coordinates()
+
+    @staticmethod
+    def _parse_chromosome(chromosome_string):
+        return int(chromosome_string.replace("chr", ""))
+
+    def _get_start_end(self) -> Tuple[int, int]:
+        if self._strand == NEGATIVE:
+            offset_left = 5
+            offset_right = 17
+        elif self._strand == POSITIVE:
+            offset_left = 16
+            offset_right = 6
+        return self._get_start_end_with_offset(offset_left, offset_right)
+
+    def _get_start_end_with_offset(self, offset_left, offset_right) -> Tuple[int, int]:
+        start = int(self._location) - offset_left
+        end = int(self._location) + offset_right
+        return (start, end)
+
+    def _create_coordinates(self) -> str:
+        start, end = self._get_start_end()
+        return f"{self._chromosome}:{start}-{end}"
+
+    @property
+    def get_coordinates(self):
+        return self._coordinates
 
     @property
     def get_oligo_id(self):
         return self._oligo_id
+
+    @property
+    def get_gene(self):
+        return self._gene
 
     @property
     def get_strand(self):
@@ -42,11 +76,11 @@ class CrisprLine:
         return self._location
 
     @property
-    def get_chromosome(self):
-        return int(self._chromosome.replace("chr", ""))
+    def get_chromosome(self) -> int:
+        return self._chromosome
 
     @staticmethod
-    def is_crispr_line(line: Crispr_line_string):
+    def is_crispr_line(line: Crispr_line_string) -> bool:
         return line[0][:3] == '@@@'
 
 

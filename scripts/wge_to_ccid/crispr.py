@@ -9,6 +9,7 @@ from typing import Dict, List
 import requests
 from mongoengine import connect, NotUniqueError, StringField, Document
 from pymongo.errors import DuplicateKeyError
+from selftarget.profile import CrisprLine
 
 from scripts.wge_to_ccid.constants import NEGATIVE, POSITIVE, SEARCH_BY_SEQ_URL, HUMAN, MOUSE
 from scripts.wge_to_ccid.helper import check_if_abs, get_file_name_without_extension
@@ -49,43 +50,6 @@ class NoWGEException(Exception):
         return f"Error - no WGE found for seq {self.species} {self.seq}"
 
 
-class CrisprLine:
-
-    def __init__(self, line: Crispr_line_string):
-        """
-        :param line: example - ["@@@CCDS103.1_chr1_9567325_+ AAGTCACTTTTTAGAGGCTT 31.24"]
-        """
-        assert self.is_crispr_line(line)
-        s: List[str] = line[0].split()
-        self._oligo_id = s[0][3:]
-        self._seq = s[1]
-        _, self._chromosome, self._location, self._strand = self._oligo_id.split('_')
-
-    @property
-    def get_oligo_id(self):
-        return self._oligo_id
-
-    @property
-    def get_strand(self):
-        return self._strand
-
-    @property
-    def get_seq(self):
-        return self._seq
-
-    @property
-    def get_location(self):
-        return self._location
-
-    @property
-    def get_chromosome(self):
-        return int(self._chromosome.replace("chr", ""))
-
-    @staticmethod
-    def is_crispr_line(line: Crispr_line_string):
-        return line[0][:3] == '@@@'
-
-
 class Crispr:
 
     def __init__(self, crispr_line: CrisprLine, species: str, filename: str, database_filename: str):
@@ -121,6 +85,7 @@ class Crispr:
         # which is constant. It is different for the positive strand and for the negative one
         # I haven't figured out what is it for the negative strand, so I'm just checking whether WGE start locations
         # is in the neighbourhood of the CRISPR location
+        # TODO: deprecate this method and use CrisprLine.get_coordinates
         IN_NEIGHBOURHOOD = 50
         strand = self.crispr_line.get_strand
         if (strand == POSITIVE) and (strand == wge_obj.get_strand()) and \

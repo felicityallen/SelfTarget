@@ -36,9 +36,9 @@ class WGE(Document):
 
 class Guide:
 
-    def __init__(self, wge_id, location, strand, species, gene):
+    def __init__(self, wge_id, coordinates, strand, species, gene):
         self.wge_id = wge_id
-        self.location = location
+        self.coordinates = coordinates
         self.strand = strand
         self.species = species
         self.gene = gene
@@ -46,7 +46,7 @@ class Guide:
 
     def to_dict(self):
         return {"wge_id": self.wge_id,
-                "location": self.location,
+                "coordinates": self.coordinates,
                 "strand": self.strand,
                 "species": self.species,
                 "gene": self.gene,
@@ -57,8 +57,11 @@ class Guide:
 
     @classmethod
     def create_guide(cls, wge_obj: WGE, crispr_line_info: CrisprLine):
-        return cls(wge_id=wge_obj.wge_id, gene=wge_obj.oligo_id, strand=crispr_line_info.get_strand,
-                   species=wge_obj.species, location=crispr_line_info.get_location)
+        return cls(wge_id=wge_obj.wge_id,
+                   species=wge_obj.species,
+                   gene=crispr_line_info.get_gene,
+                   strand=crispr_line_info.get_strand,
+                   coordinates=crispr_line_info.get_coordinates)
 
 
 class NoWGEException(Exception):
