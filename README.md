@@ -99,9 +99,9 @@ Output will be in
 which are formatted as for single mode, but separate guides are prefaced by a line with
 
 ```
-@@@<ID>
+@@@<ID> <predicted_in_frame>
 ```
-where ID is the identifier provided for the guide in the batch file.
+where ID is the identifier provided for the guide in the batch file, and predicted_in_frame is the predicted percentage of in-frame mutations (i.e. all insertions or deletions that are of size 3,6,9...etc)
 
 ## Installation
 
