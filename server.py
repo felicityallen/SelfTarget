@@ -12,8 +12,11 @@ from mongoengine import connect, Document, StringField, MultipleObjectsReturned
 from predictor.predict import build_plot_by_profile
 from selftarget.profile import readSummaryToProfile, get_guide_info_from_oligo_id, CrisprLine
 from werkzeug.exceptions import BadRequest
+from flask_cors import CORS
+
 
 app = Flask(__name__)
+CORS(app)
 
 model_path = "indel_prediction/predictor/model_output_10000_0.01000000_0.01000000_-0.607_theta.txt_cf0.txt"
 

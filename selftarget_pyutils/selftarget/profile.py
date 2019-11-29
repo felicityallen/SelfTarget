@@ -1,6 +1,7 @@
 import csv
 import io
 import os
+import sys
 from typing import List, Tuple
 
 import numpy as np
@@ -13,6 +14,8 @@ NEGATIVE = "-"
 POSITIVE = "+"
 
 Crispr_line_string = List[str]
+
+csv.field_size_limit(sys.maxsize)
 
 
 class CrisprLine:
