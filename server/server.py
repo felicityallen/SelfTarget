@@ -14,7 +14,6 @@ from selftarget.profile import readSummaryToProfile, get_guide_info_from_oligo_i
 from werkzeug.exceptions import BadRequest
 from flask_cors import CORS
 
-
 app = Flask(__name__)
 CORS(app)
 
@@ -77,6 +76,10 @@ class NoWGEException(Exception):
         return f"Error - no WGE found for seq {self.seq} {self.species}"
 
 
+def get_precomputed_file_path(seq, pam_idx):
+    return os.path.join(os.getenv("PRECOMPUTED_PLOTS_DIR", ""), f'{seq}_{pam_idx}.txt')
+
+
 def get_obj_by_id(id, species):
     wge = False
     # if id is integer, this is wge, if not, it's oligo_id
@@ -135,12 +138,12 @@ def get_profile():
     pam_idx = data.get("pam_idx", "")
     if not (seq and pam_idx):
         return jsonify({'error': 'Target sequence or pam index not provided'}), http.HTTPStatus.BAD_REQUEST
-    filename = '{0}_{1}.txt'.format(seq, pam_idx)
+    filename = get_precomputed_file_path(seq, pam_idx)
     if os.path.exists(filename):
         return send_file(filename, as_attachment=True)
     else:
         return jsonify(
-            {'error': 'Profile with those target sequence and pam index not found'}), http.HTTPStatus.BAD_REQUEST
+            {'error': 'Profile with those target sequence and pam index not found'}), http.HTTPStatus.NOT_FOUND
 
 
 @app.route('/plot', methods=['GET', 'POST'])
@@ -148,10 +151,6 @@ def plot():
     """
     This endpoint returns a javascript code that is rendered in a browser as a profile plot
     for a particular pair of sequence and PAM index.
-
-    request body: {"seq": "SEQUENCE", "pam_idx": "NUMBER"}
-    :return: {"plot": "plot data"}
-    :return: {"error": "error message"}
     """
     if request.method == 'GET':
         data = request.args
@@ -180,11 +179,11 @@ def plot():
     elif request.method == 'POST':
         data = request.form or request.get_json()
         seq = data.get("seq", "")
-        pam_idx = int(data.get("pam_idx", ""))
+        pam_idx = data.get("pam_idx", "")
         if not (seq and pam_idx):
-            return jsonify({'message': 'Empty request'}), http.HTTPStatus.BAD_REQUEST
+            return jsonify({'error': 'Empty request'}), http.HTTPStatus.BAD_REQUEST
         try:
-            graph_html = mpld3.fig_to_html(plot_predictions(model_path, seq, pam_idx),
+            graph_html = mpld3.fig_to_html(plot_predictions(model_path, seq, int(pam_idx)),
                                            template_type="simple",
                                            figid="plot",
                                            no_extras=True)
