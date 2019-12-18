@@ -380,7 +380,7 @@ def fetchReads(mapped_profile_filename, rep_reads, oligoid=None):
     f.close()
 
 
-def get_guide_info_from_oligo_id(profile_file, oligo_id) -> CrisprLine:
+def get_guide_info_from_oligo_id(profile_file: str, oligo_id: str) -> CrisprLine:
     with open(profile_file) as f:
         reader = csv.reader(f, delimiter='\t')
         for toks in reader:
