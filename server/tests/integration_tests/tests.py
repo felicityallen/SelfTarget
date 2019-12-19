@@ -5,7 +5,7 @@ import bravado
 import bravado.exception
 import pytest
 
-from server.model import FORECasTRequest
+from server.request_types import FORECasTRequest
 
 EXAMPLE_SEQUENCE = "ATGCTAGCTAGGGCATGAGGCATGCTAGTGACTGCATGGTAC"
 EXAMPLE_PAM_IDX = 17
@@ -14,7 +14,7 @@ fr = FORECasTRequest(EXAMPLE_SEQUENCE, EXAMPLE_PAM_IDX)
 
 def remove_example_cached_results():
     try:
-        os.remove(fr.get_precomputed_file_path())
+        os.remove(fr.filename)
     except OSError:
         pass
 

@@ -140,7 +140,7 @@ SelfTarget repository contains a Flask server with two API endpoints that are us
 To run predictor as a server, you can follow the local installation steps above, 
 go to the root directory and launch
 ```bash
-python server.py --port=5001
+python server/server.py --port=5001
 ```
 or simply run a Docker container
 ```bash
