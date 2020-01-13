@@ -47,6 +47,7 @@ def get_wge_or_send_error(pr: PrecomputedProfileRequest) -> Union[WGE, ResponseT
 
 def get_graph_html_or_send_error(figure) -> Union[str, ResponseType]:
     try:
+        figure.set_size_inches(11, 5.2)
         return mpld3.fig_to_html(figure,
                                  template_type="simple",
                                  figid="plot",
