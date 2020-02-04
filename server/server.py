@@ -70,7 +70,7 @@ def get_precomputed_plot() -> ResponseType:
 def generate_plot() -> ResponseType:
     data = request.form or request.get_json()
     fr = FORECasTRequest.get_object_or_fail(data)
-    figure = plot_predictions(model_path, fr.seq, fr.pam_idx)
+    figure = plot_predictions(model_path, fr.seq, fr.pam_idx, fr.filename)
     graph_html = get_graph_html_or_send_error(figure)
     return jsonify({"plot": graph_html})
 
