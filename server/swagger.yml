@@ -1,0 +1,186 @@
+info:
+  description: Swagger schema for SelfTarget server
+  title: st-server
+  version: 1.0.0
+schemes:
+  - http
+  - https
+swagger: "2.0"
+
+paths:
+
+  /ping:
+    get:
+      tags:
+        - ping
+      summary: checks whether SelfTarget server is running
+      operationId: ping
+      responses:
+        "200":
+          description: Server is up and running
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: SelfTarget is not running on the server
+
+  /plot:
+    post:
+      summary: Return precomputed plot for a given sequence and PAM index
+      description: "Returns a javascript code that is rendered in a browser as a profile plot
+              for a particular pair of sequence and PAM index."
+      tags:
+        - plot
+      operationId: searchBySeqAndPAM
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "Sequence and a PAM index"
+          schema:
+            $ref: "#/definitions/forecast_request"
+      responses:
+        "200":
+          description: Computation succeeded
+          schema:
+            type: object
+            required:
+              - plot
+            properties:
+              plot:
+                type: string
+        "400":
+          description: One of sequence or PAM index is missing
+        "500":
+          description: Model error
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+    get:
+      summary: Return plot by WGE or Oligo ID
+      description: Return precomputed plot for a given WGE or Oligo ID (one of WGE or Oligo ID is required)
+      tags:
+        - plot
+      operationId: getPrecomputedPlot
+      parameters:
+        - name: "wge"
+          in: "query"
+          description: WGE id
+          type: string
+        - name: "id"
+          in: "query"
+          description: Oligo id
+          type: string
+        - name: "species"
+          in: "query"
+          required: true
+          type: string
+          description: Species
+          enum:
+            - "human"
+            - "mouse"
+
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            type: object
+            properties:
+              plot:
+                type: string
+              guide:
+                type: object
+                properties:
+                  wge_id:
+                    type: string
+                  coordinates:
+                    type: string
+                  strand:
+                    type: string
+                    enum:
+                      - "+"
+                      - "-"
+                  species:
+                    $ref: "#definitions/species"
+                  gene:
+                    type: string
+
+        "400":
+          description: "Species or one of 'wge' or 'id' is missing"
+        "404":
+          description: No corresponding profile was found
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /api/profile:
+    get:
+      tags:
+        - profile
+      summary: Download a precomputed profile for a given seq and PAM index
+      description: This endpoint returns a profile as a text file. It is created and saved
+        automatically if the plot has been built before (via the `plot` endpoint)
+        for a sequence and PAM index pair. If the plot has not been built,
+        there is no profile file saved, so an error is raised.
+      operationId: downloadProfile
+      parameters:
+        - name: seq
+          in: query
+          type: string
+          required: true
+        - name: pam_idx
+          in: query
+          type: integer
+          required: true
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            type: file
+        "400":
+          description: Target sequence or PAM index not provided
+          schema:
+            $ref: "#/definitions/error"
+        "404":
+          description: No corresponding profile was found
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+definitions:
+
+  forecast_request:
+    type: object
+    required:
+      - seq
+      - pam_idx
+    properties:
+      seq:
+        description: Sequence
+        type: string
+      pam_idx:
+        description: PAM index
+        type: integer
+
+  species:
+    type: string
+    description: Species
+    enum:
+      - "human"
+      - "mouse"
+
+  error:
+    type: object
+    required:
+      - error
+    properties:
+      error:
+        type: string
+

@@ -84,7 +84,7 @@ def build_plot_by_profile(filename, profile, oligo_id):
     return fig
 
 
-def plot_predictions(theta_file, target_seq, pam_idx):
+def plot_predictions(theta_file, target_seq, pam_idx, out_filename=None):
 
     if pam_idx < 0 or pam_idx >= (len(target_seq)-3):
         raise Exception('PAM idx out of range')
@@ -99,7 +99,8 @@ def plot_predictions(theta_file, target_seq, pam_idx):
         raise Exception('Non NGG PAM (check correct index of PAM)')
 
     profile, rep_reads, in_frame = predictMutations(theta_file, target_seq, pam_idx)
-    out_filename = '%s_%d.txt' % (target_seq, pam_idx)
+    if not out_filename:
+        out_filename = '%s_%d.txt' % (target_seq, pam_idx)
     fout = io.open(out_filename,'w')
     fout.write(u'@@@%s\n' % ('%.1f' % in_frame))
     writePredictedProfileToSummary(profile, fout)

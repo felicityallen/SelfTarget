@@ -132,6 +132,7 @@ docker exec -it quay.io/felicityallen/selftarget bash
 ```
 #### Web service
 
+##### Installation
 The predictor can be run as a web service. It can be accessed through a separate front end application 
 [FORECasT](https://partslab.sanger.ac.uk) ([source on GitHub](https://github.com/cellgeni/FORECasT)). 
 SelfTarget repository contains a Flask server with two API endpoints that are used by FORECasT to access predictor.
@@ -139,12 +140,20 @@ SelfTarget repository contains a Flask server with two API endpoints that are us
 To run predictor as a server, you can follow the local installation steps above, 
 go to the root directory and launch
 ```bash
-python server.py --port=5001
+python server/server.py --port=5001
 ```
 or simply run a Docker container
 ```bash
 docker run -d --name selftarget -p 5001:8006 quay.io/felicityallen/selftarget
 ```
+
+##### Development
+
+All changes to the server must be reflected in `swagger.yaml` since
+it's being used to automatically generate clients for other services.
+Tests use it as well, so generally any unreflected changes must fail
+some of the tests. It is handy to validate swagger specification with
+`swagger validate swagger.yml`
 
 
 

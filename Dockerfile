@@ -12,6 +12,7 @@ COPY requirements.txt /app
 RUN pip install --upgrade pip && pip install -r /app/requirements.txt
 
 COPY . /app
+COPY server/uwsgi.ini /app
 
 RUN cd /app/indel_prediction && pip install . && \
     cd /app/selftarget_pyutils && pip install .
