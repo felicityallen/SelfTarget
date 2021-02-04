@@ -48,6 +48,11 @@ void getAllInsertionsOfSize(std::vector<std::string> &inserts, int isize) {
 IndelXX gen_indel_xx;
 
 void generateAllIndels(gen_indel_t &gen_indels, Oligo* oligo, int max_cut_dist, int max_del_size, int max_ins_size, int max_del_to_allow_insert, std::vector<barcode_t> &barcode_lookups, bool check_mappable, rep_reads_t &rep_reads, bool store_reads ) {
+	
+	if (oligo->reverse) {
+		std::cerr << "Warning: Cannot process " << oligo->id << " - REVERSE sequences not supported for indel generation, please take reverse complement and update cut idx." << std::endl;
+		return;
+	}
 
 	std::string ins_str;
 	int left_min = std::max(0, oligo->cut_idx - max_del_size - 1);

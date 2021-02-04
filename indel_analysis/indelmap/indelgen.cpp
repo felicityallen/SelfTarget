@@ -47,6 +47,10 @@ int main(int argc, char *argv[])
 	//Generate possible indels for each oligo and write to file
 	std::vector<Oligo*>::iterator it = oligo_lookup.begin();
 	for (; it != oligo_lookup.end(); ++it) {
+		if ((*it)->reverse) {
+			std::cerr << "Warning: Skipping " << (*it)->id << " - REVERSE sequences not supported by indelgen, please take reverse complement and update pam idx before input to indelgen." << std::endl;
+			continue;
+		}
 		gen_indel_t indels; rep_reads_t rep_reads;
 		generateAllIndels(indels, *it, max_cut_dist, MAX_DEL_SIZE, MAX_INS_SIZE, MAX_DEL_TO_ALLOW_INS, barcode_lookups, true, rep_reads, false);
 		std::string oligo_output_filename = output_prefix + (*it)->id + "_genindels.txt";
