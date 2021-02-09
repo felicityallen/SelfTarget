@@ -89,7 +89,7 @@ def plot_predictions(theta_file, target_seq, pam_idx, out_filename=None):
     if pam_idx < 0 or pam_idx >= (len(target_seq)-3):
         raise Exception('PAM idx out of range')
 
-    if sum([x in ['A','T','G','C'] for x in target_seq]) != len(target_seq):
+    if set(target_seq) - set("ATGC"):
         raise Exception('Sequence must be composed of A,T,G,or C only')
 
     if len(target_seq) < 20 or pam_idx < 13 or pam_idx > len(target_seq)-7:
