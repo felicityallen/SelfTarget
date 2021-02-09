@@ -59,10 +59,10 @@ def predictMutations(theta_file, target_seq, pam_idx, add_null=True):
     feature_data, feature_columns = readFeaturesData(tmp_features_file)
     os.remove(tmp_features_file)
 
-    if len(set(theta_feature_columns).difference(set(feature_columns))) != 0:
+    if not set(feature_columns) >= set(theta_feature_columns):
         raise Exception('Stored feature names associated with model thetas are not contained in those computed')
 
-    if len(set(theta_feature_columns).union(set(feature_columns))) != len(theta_feature_columns):
+    if not set(theta_feature_columns) >= set(feature_columns):
         feature_data = feature_data[['Indel'] + theta_feature_columns]
         feature_columns = theta_feature_columns
 
