@@ -22,7 +22,7 @@ packaging==19.1
 pandas==0.23.4
 pluggy==0.12.0
 -e git+https://github.com/felicityallen/SelfTarget.git@8d69d015abdd7e0a70984ba58536676d72b16d62#egg=predictor&subdirectory=indel_prediction
-py==1.8.0
+py==1.10.0
 pymongo==3.8.0
 pyparsing==2.2.0
 pytest==5.0.1
