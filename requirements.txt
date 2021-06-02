@@ -32,7 +32,7 @@ requests==2.21.0
 scipy==1.1.0
 -e git+https://github.com/felicityallen/SelfTarget.git@8d69d015abdd7e0a70984ba58536676d72b16d62#egg=selftarget&subdirectory=selftarget_pyutils
 six==1.11.0
-urllib3==1.24.3
+urllib3==1.26.5
 wcwidth==0.1.7
 Werkzeug==0.14.1
 zipp==0.5.2
