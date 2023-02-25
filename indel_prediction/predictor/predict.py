@@ -45,7 +45,7 @@ def predictMutations(theta_file, target_seq, pam_idx, add_null=True):
 
     #generate indels
     left_trim = 0
-    tmp_genindels_file = 'tmp_genindels_%s_%d.txt' % (target_seq, random.randint(0,100000))
+    tmp_genindels_file = 'tmp_genindels_%d.txt' % (random.randint(0,100000))
     cmd = INDELGENTARGET_EXE + ' %s %d %s' % (target_seq, pam_idx, tmp_genindels_file)
     print(cmd); subprocess.check_call(cmd.split())
     rep_reads = fetchRepReads(tmp_genindels_file)
@@ -53,7 +53,7 @@ def predictMutations(theta_file, target_seq, pam_idx, add_null=True):
     if isize > 0: left_trim = target_seq.find(rep_reads[smallest_indel][:10])
 
     #compute features for all generated indels
-    tmp_features_file = 'tmp_features_%s_%d.txt' % (target_seq, random.randint(0,100000))
+    tmp_features_file = 'tmp_features_%d.txt' % (random.randint(0,100000))
     calculateFeaturesForGenIndelFile( tmp_genindels_file, target_seq, pam_idx-3, tmp_features_file)
     os.remove(tmp_genindels_file)
     feature_data, feature_columns = readFeaturesData(tmp_features_file)
